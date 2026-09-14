@@ -315,13 +315,18 @@ async function activatePreview() {
         if (!stream) {
             // Nutzt bevorzugt die Rückkamera (environment)
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                video: { 
+                    facingMode: 'environment', 
+                    width: { ideal: 1280 }, 
+                    height: { ideal: 720 },
+                    frameRate: { ideal: VIDEO_FPS }
+                },
                 audio: true // Ton wird mitaufgenommen
             });
             
             video.srcObject = stream;
             
-            // Watte bis Video Metadaten geladen sind, um Canvas-Größe anzupassen
+            // Warte bis Video Metadaten geladen sind, um Canvas-Größe anzupassen
             video.onloadedmetadata = () => {
                 canvas.width = 160; // Geringe Auflösung reicht völlig für die Bewegungserkennung (spart Akku)
                 canvas.height = 120;
