@@ -46,6 +46,59 @@
         .status-recording { color: #ff3333; animation: blink 1s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
         .stats { font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; padding: 0 5px; }
+        .settings {
+            background-color: #1e1e1e;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .setting-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .setting-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #00ff88;
+            font-weight: bold;
+        }
+        .setting-value {
+            color: #888;
+            font-size: 0.85rem;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 255, 136, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 5px rgba(0, 255, 136, 0.5);
+        }
         canvas { display: none; }
     </style>
 </head>
@@ -68,6 +121,32 @@
         <span id="clipCount">Gespeicherte Clips: 0</span>
         <span id="motionValue">Bewegung: 0%</span>
     </div>
+    
+    <div class="settings">
+        <div class="setting-row">
+            <div class="setting-label">
+                <span>Empfindlichkeit (Sensitivity)</span>
+                <span class="setting-value" id="sensitivityValue">50</span>
+            </div>
+            <input type="range" id="sensitivitySlider" min="0" max="255" value="50">
+        </div>
+        
+        <div class="setting-row">
+            <div class="setting-label">
+                <span>Bewegungsschwelle (Motion Threshold)</span>
+                <span class="setting-value" id="thresholdValue">1.5%</span>
+            </div>
+            <input type="range" id="thresholdSlider" min="0.5" max="10" step="0.5" value="1.5">
+        </div>
+        
+        <div class="setting-row">
+            <div class="setting-label">
+                <span>Nachlaufzeit (Cooldown)</span>
+                <span class="setting-value" id="cooldownValue">4s</span>
+            </div>
+            <input type="range" id="cooldownSlider" min="1" max="10" value="4">
+        </div>
+    </div>
 </div>
 
 <script>
@@ -80,11 +159,19 @@ const statusText = document.getElementById('statusText');
 const clipCountText = document.getElementById('clipCount');
 const motionValueText = document.getElementById('motionValue');
 
-// --- EINSTELLUNGEN FÜR DEIN SKATE-TRAINING ---
-const SENSITIVITY = 50;       // Wie stark muss sich die Farbe eines Pixels ändern (0-255)
-const MOTION_THRESHOLD = 0.015; // Wie viel Prozent des Bildes müssen sich bewegen (0.015 = 1.5%)
-const COOLDOWN_TIME = 4000;   // Nachlaufzeit in Millisekunden (4 Sekunden weiterfilmen nach Bewegung)
-// --------------------------------------------
+// Schieberegler und deren Wert-Anzeigen
+const sensitivitySlider = document.getElementById('sensitivitySlider');
+const thresholdSlider = document.getElementById('thresholdSlider');
+const cooldownSlider = document.getElementById('cooldownSlider');
+const sensitivityValue = document.getElementById('sensitivityValue');
+const thresholdValue = document.getElementById('thresholdValue');
+const cooldownValue = document.getElementById('cooldownValue');
+
+// --- EINSTELLUNGEN (JETZT DYNAMISCH ÜBER SCHIEBEREGLER) ---
+let SENSITIVITY = 50;
+let MOTION_THRESHOLD = 0.015;
+let COOLDOWN_TIME = 4000;
+// -------------------------------------------------------
 
 let stream = null;
 let mediaRecorder = null;
@@ -96,6 +183,22 @@ let lastMotionTime = 0;
 let animationFrameId = null;
 let checkMotionInterval = null;
 let clipCounter = 0;
+
+// Event Listener für Schieberegler
+sensitivitySlider.addEventListener('input', (e) => {
+    SENSITIVITY = parseInt(e.target.value);
+    sensitivityValue.textContent = SENSITIVITY;
+});
+
+thresholdSlider.addEventListener('input', (e) => {
+    MOTION_THRESHOLD = parseFloat(e.target.value) / 100;
+    thresholdValue.textContent = e.target.value + '%';
+});
+
+cooldownSlider.addEventListener('input', (e) => {
+    COOLDOWN_TIME = parseInt(e.target.value) * 1000;
+    cooldownValue.textContent = e.target.value + 's';
+});
 
 // Kamera automatisch beim Laden starten (nur Video-Preview, keine Bewegungserkennung)
 window.addEventListener('DOMContentLoaded', () => {
