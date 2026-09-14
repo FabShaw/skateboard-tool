@@ -58,11 +58,11 @@
     <canvas id="motionCanvas"></canvas>
     
     <div class="controls">
-        <button class="btn-start" id="startBtn">Kamera Starten</button>
-        <button class="btn-stop" id="stopBtn" style="display:none;">Stoppen</button>
+        <button class="btn-start" id="startBtn" style="display:none;">Kamera Starten</button>
+        <button class="btn-stop" id="stopBtn">Stoppen</button>
     </div>
     
-    <div class="status-box status-idle" id="statusText">Bereit. Bitte Kamera starten.</div>
+    <div class="status-box status-idle" id="statusText">Kamera wird gestartet...</div>
     
     <div class="stats">
         <span id="clipCount">Gespeicherte Clips: 0</span>
@@ -96,7 +96,12 @@ let animationFrameId = null;
 let checkMotionInterval = null;
 let clipCounter = 0;
 
-startBtn.addEventListener('click', async () => {
+// Kamera automatisch beim Laden starten
+window.addEventListener('DOMContentLoaded', () => {
+    initializeCamera();
+});
+
+async function initializeCamera() {
     try {
         // Nutzt bevorzugt die Rückkamera (environment)
         stream = await navigator.mediaDevices.getUserMedia({
@@ -119,7 +124,15 @@ startBtn.addEventListener('click', async () => {
         
     } catch (err) {
         alert("Fehler beim Zugriff auf Kamera/Mikrofon: " + err.message);
+        statusText.textContent = "Kamera konnte nicht gestartet werden.";
+        statusText.className = "status-box status-idle";
+        startBtn.style.display = 'block';
+        stopBtn.style.display = 'none';
     }
+}
+
+startBtn.addEventListener('click', () => {
+    initializeCamera();
 });
 
 stopBtn.addEventListener('click', () => {
