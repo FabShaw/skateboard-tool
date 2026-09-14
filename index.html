@@ -58,11 +58,11 @@
     <canvas id="motionCanvas"></canvas>
     
     <div class="controls">
-        <button class="btn-start" id="startBtn" style="display:none;">Kamera Starten</button>
-        <button class="btn-stop" id="stopBtn">Stoppen</button>
+        <button class="btn-start" id="startBtn">Aufnahme Starten</button>
+        <button class="btn-stop" id="stopBtn" style="display:none;">Stoppen</button>
     </div>
     
-    <div class="status-box status-idle" id="statusText">Kamera wird gestartet...</div>
+    <div class="status-box status-idle" id="statusText">Bereit. Bitte Aufnahme starten.</div>
     
     <div class="stats">
         <span id="clipCount">Gespeicherte Clips: 0</span>
@@ -91,17 +91,18 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let previousFrame = null;
 let isRecording = false;
+let isMotionDetectionActive = false;
 let lastMotionTime = 0;
 let animationFrameId = null;
 let checkMotionInterval = null;
 let clipCounter = 0;
 
-// Kamera automatisch beim Laden starten
+// Kamera automatisch beim Laden starten (nur Video-Preview, keine Bewegungserkennung)
 window.addEventListener('DOMContentLoaded', () => {
-    initializeCamera();
+    initializeCameraPreview();
 });
 
-async function initializeCamera() {
+async function initializeCameraPreview() {
     try {
         // Nutzt bevorzugt die Rückkamera (environment)
         stream = await navigator.mediaDevices.getUserMedia({
@@ -110,29 +111,35 @@ async function initializeCamera() {
         });
         
         video.srcObject = stream;
-        startBtn.style.display = 'none';
-        stopBtn.style.display = 'block';
-        statusText.textContent = "Warte auf Bewegung...";
+        statusText.textContent = "Bereit. Bitte Aufnahme starten.";
         statusText.className = "status-box status-idle";
         
         // Warte bis Video Metadaten geladen sind, um Canvas-Größe anzupassen
         video.onloadedmetadata = () => {
             canvas.width = 160; // Geringe Auflösung reicht völlig für die Bewegungserkennung (spart Akku)
             canvas.height = 120;
-            startMotionDetection();
         };
         
     } catch (err) {
         alert("Fehler beim Zugriff auf Kamera/Mikrofon: " + err.message);
         statusText.textContent = "Kamera konnte nicht gestartet werden.";
         statusText.className = "status-box status-idle";
-        startBtn.style.display = 'block';
-        stopBtn.style.display = 'none';
     }
 }
 
 startBtn.addEventListener('click', () => {
-    initializeCamera();
+    if (!stream) {
+        alert("Kamera nicht verfügbar. Bitte Seite neu laden.");
+        return;
+    }
+    
+    // Starte Bewegungserkennung und Aufnahme
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'block';
+    isMotionDetectionActive = true;
+    statusText.textContent = "Warte auf Bewegung...";
+    statusText.className = "status-box status-idle";
+    startMotionDetection();
 });
 
 stopBtn.addEventListener('click', () => {
@@ -143,22 +150,20 @@ function stopAll() {
     if (isRecording) {
         stopVideoRecording(false); // Stoppe aktuelle Aufnahme ohne automatischen Download
     }
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-    }
+    isMotionDetectionActive = false;
     cancelAnimationFrame(animationFrameId);
     clearInterval(checkMotionInterval);
     
     startBtn.style.display = 'block';
     stopBtn.style.display = 'none';
-    statusText.textContent = "Bereit. Bitte Kamera starten.";
+    statusText.textContent = "Bereit. Bitte Aufnahme starten.";
     statusText.className = "status-box status-idle";
     previousFrame = null;
 }
 
 function startMotionDetection() {
     checkMotionInterval = setInterval(() => {
-        if (!stream) return;
+        if (!stream || !isMotionDetectionActive) return;
         
         // Zeichne aktuelles Videobild verkleinert auf das Canvas
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
