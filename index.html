@@ -193,20 +193,67 @@ let animationFrameId = null;
 let checkMotionInterval = null;
 let clipCounter = 0;
 
+// LocalStorage-Schlüssel
+const STORAGE_KEYS = {
+    sensitivity: 'skateCapture_sensitivity',
+    threshold: 'skateCapture_threshold',
+    cooldown: 'skateCapture_cooldown'
+};
+
+// Funktion zum Laden der gespeicherten Einstellungen
+function loadSettings() {
+    const savedSensitivity = localStorage.getItem(STORAGE_KEYS.sensitivity);
+    const savedThreshold = localStorage.getItem(STORAGE_KEYS.threshold);
+    const savedCooldown = localStorage.getItem(STORAGE_KEYS.cooldown);
+    
+    if (savedSensitivity !== null) {
+        sensitivitySlider.value = savedSensitivity;
+        SENSITIVITY = parseInt(savedSensitivity);
+        sensitivityValue.textContent = SENSITIVITY;
+    }
+    
+    if (savedThreshold !== null) {
+        thresholdSlider.value = savedThreshold;
+        MOTION_THRESHOLD = parseFloat(savedThreshold) / 100;
+        thresholdValue.textContent = savedThreshold + '%';
+    }
+    
+    if (savedCooldown !== null) {
+        cooldownSlider.value = savedCooldown;
+        COOLDOWN_TIME = parseInt(savedCooldown) * 1000;
+        cooldownValue.textContent = savedCooldown + 's';
+    }
+}
+
+// Funktion zum Speichern der Einstellungen
+function saveSettings() {
+    localStorage.setItem(STORAGE_KEYS.sensitivity, sensitivitySlider.value);
+    localStorage.setItem(STORAGE_KEYS.threshold, thresholdSlider.value);
+    localStorage.setItem(STORAGE_KEYS.cooldown, cooldownSlider.value);
+}
+
+// Einstellungen beim Laden der Seite zurückstellen
+window.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+});
+
 // Event Listener für Schieberegler
 sensitivitySlider.addEventListener('input', (e) => {
     SENSITIVITY = parseInt(e.target.value);
     sensitivityValue.textContent = SENSITIVITY;
+    saveSettings();
 });
 
 thresholdSlider.addEventListener('input', (e) => {
     MOTION_THRESHOLD = parseFloat(e.target.value) / 100;
     thresholdValue.textContent = e.target.value + '%';
+    saveSettings();
 });
 
 cooldownSlider.addEventListener('input', (e) => {
     COOLDOWN_TIME = parseInt(e.target.value) * 1000;
     cooldownValue.textContent = e.target.value + 's';
+    saveSettings();
 });
 
 // Preview Toggle Button
