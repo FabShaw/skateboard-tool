@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skate Motion Capture</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #00ff88; font-size: 1.5rem; margin-bottom: 10px; }
+        .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; }
+        video { width: 100%; border-radius: 8px; background-color: #222; transform: scaleX(1); }
+        .controls { display: flex; gap: 10px; }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-start { background-color: #00ff88; color: #121212; }
+        .btn-start:hover { background-color: #00cc6e; }
+        .btn-stop { background-color: #ff3333; color: white; }
+        .btn-stop:hover { background-color: #cc0000; }
+        .status-box {
+            padding: 15px;
+            border-radius: 6px;
+            background-color: #1e1e1e;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: 1px solid #333;
+        }
+        .status-idle { color: #aaaaaa; }
+        .status-recording { color: #ff3333; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .stats { font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; padding: 0 5px; }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Skate Motion Capture</h1>
+    
+    <video id="preview" autoplay playsinline muted></video>
+    <canvas id="motionCanvas"></canvas>
+    
+    <div class="controls">
+        <button class="btn-start" id="startBtn">Kamera Starten</button>
+        <button class="btn-stop" id="stopBtn" style="display:none;">Stoppen</button>
+    </div>
+    
+    <div class="status-box status-idle" id="statusText">Bereit. Bitte Kamera starten.</div>
+    
+    <div class="stats">
+        <span id="clipCount">Gespeicherte Clips: 0</span>
+        <span id="motionValue">Bewegung: 0%</span>
+    </div>
+</div>
+
+<script>
+const video = document.getElementById('preview');
+const canvas = document.getElementById('motionCanvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const statusText = document.getElementById('statusText');
+const clipCountText = document.getElementById('clipCount');
+const motionValueText = document.getElementById('motionValue');
+
+// --- EINSTELLUNGEN FÜR DEIN SKATE-TRAINING ---
+const SENSITIVITY = 50;       // Wie stark muss sich die Farbe eines Pixels ändern (0-255)
+const MOTION_THRESHOLD = 0.015; // Wie viel Prozent des Bildes müssen sich bewegen (0.015 = 1.5%)
+const COOLDOWN_TIME = 4000;   // Nachlaufzeit in Millisekunden (4 Sekunden weiterfilmen nach Bewegung)
+// --------------------------------------------
+
+let stream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let previousFrame = null;
+let isRecording = false;
+let lastMotionTime = 0;
+let animationFrameId = null;
+let checkMotionInterval = null;
+let clipCounter = 0;
+
+startBtn.addEventListener('click', async () => {
+    try {
+        // Nutzt bevorzugt die Rückkamera (environment)
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: true // Ton wird mitaufgenommen
+        });
+        
+        video.srcObject = stream;
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+        statusText.textContent = "Warte auf Bewegung...";
+        statusText.className = "status-box status-idle";
+        
+        // Warte bis Video Metadaten geladen sind, um Canvas-Größe anzupassen
+        video.onloadedmetadata = () => {
+            canvas.width = 160; // Geringe Auflösung reicht völlig für die Bewegungserkennung (spart Akku)
+            canvas.height = 120;
+            startMotionDetection();
+        };
+        
+    } catch (err) {
+        alert("Fehler beim Zugriff auf Kamera/Mikrofon: " + err.message);
+    }
+});
+
+stopBtn.addEventListener('click', () => {
+    stopAll();
+});
+
+function stopAll() {
+    if (isRecording) {
+        stopVideoRecording(false); // Stoppe aktuelle Aufnahme ohne automatischen Download
+    }
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+    cancelAnimationFrame(animationFrameId);
+    clearInterval(checkMotionInterval);
+    
+    startBtn.style.display = 'block';
+    stopBtn.style.display = 'none';
+    statusText.textContent = "Bereit. Bitte Kamera starten.";
+    statusText.className = "status-box status-idle";
+    previousFrame = null;
+}
+
+function startMotionDetection() {
+    checkMotionInterval = setInterval(() => {
+        if (!stream) return;
+        
+        // Zeichne aktuelles Videobild verkleinert auf das Canvas
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        if (previousFrame) {
+            let changedPixels = 0;
+            const totalPixels = currentFrame.data.length / 4;
+            
+            for (let i = 0; i < currentFrame.data.length; i += 4) {
+                let rDiff = Math.abs(currentFrame.data[i] - previousFrame.data[i]);
+                let gDiff = Math.abs(currentFrame.data[i+1] - previousFrame.data[i+1]);
+                let bDiff = Math.abs(currentFrame.data[i+2] - previousFrame.data[i+2]);
+                
+                if (rDiff + gDiff + bDiff > SENSITIVITY) {
+                    changedPixels++;
+                }
+            }
+            
+            const motionRatio = changedPixels / totalPixels;
+            motionValueText.textContent = `Bewegung: ${(motionRatio * 100).toFixed(1)}%`;
+            
+            if (motionRatio > MOTION_THRESHOLD) {
+                lastMotionTime = Date.now();
+                if (!isRecording) {
+                    startVideoRecording();
+                }
+            } else {
+                // Keine Bewegung. Prüfen, ob Nachlaufzeit abgelaufen ist
+                if (isRecording && (Date.now() - lastMotionTime > COOLDOWN_TIME)) {
+                    stopVideoRecording(true); // Stoppen und automatisch herunterladen
+                }
+            }
+        }
+        
+        previousFrame = currentFrame;
+    }, 100); // Prüft 10 Mal pro Sekunde auf Bewegung
+}
+
+function startVideoRecording() {
+    isRecording = true;
+    recordedChunks = [];
+    statusText.textContent = "● AUFNAHME LÄUFT...";
+    statusText.className = "status-box status-recording";
+    
+    // Finde unterstützten Codec (häufig mp4/webm auf Android)
+    let options = { mimeType: 'video/webm;codecs=vp9,opus' };
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm;codecs=vp8,opus' };
+    }
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/mp4' };
+    }
+    
+    try {
+        mediaRecorder = new MediaRecorder(stream, options);
+    } catch (e) {
+        mediaRecorder = new MediaRecorder(stream);
+    }
+    
+    mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+            recordedChunks.push(event.data);
+        }
+    };
+    
+    mediaRecorder.onstop = () => {
+        if (recordedChunks.length > 0) {
+            triggerAutoDownload();
+        }
+    };
+    
+    mediaRecorder.start();
+}
+
+function stopVideoRecording(shouldSave) {
+    isRecording = false;
+    statusText.textContent = "Warte auf Bewegung...";
+    statusText.className = "status-box status-idle";
+    
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        if (!shouldSave) {
+            // Falls manuell gestoppt wird, breche den automatischen Download ab
+            mediaRecorder.onstop = null; 
+        }
+        mediaRecorder.stop();
+    }
+}
+
+function triggerAutoDownload() {
+    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    
+    // Generiere einen eindeutigen Dateinamen mit Zeitstempel
+    const now = new Date();
+    const timeStr = now.toISOString().replace(/[:.]/g, '-');
+    clipCounter++;
+    clipCountText.textContent = `Gespeicherte Clips: ${clipCounter}`;
+    
+    // Erstelle ein unsichtbares Download-Element
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `Skate_Clip_${timeStr}.webm`;
+    
+    document.body.appendChild(a);
+    a.click(); // Löst den automatischen Download aus
+    
+    // Aufräumen
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+}
+</script>
+
+</body>
+</html>
