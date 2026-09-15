@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -181,6 +182,7 @@
         <div class="setting-row">
             <div class="setting-label">
                 <span>Video FPS</span>
+                <span class="setting-value" id="actualFpsValue">Kamera: -- FPS</span>
             </div>
             <select id="fpsSelect">
                 <option value="24">24 FPS</option>
@@ -197,6 +199,7 @@
 const video = document.getElementById('preview');
 const canvas = document.getElementById('motionCanvas');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const statusText = document.getElementById('statusText');
@@ -205,21 +208,20 @@ const motionValueText = document.getElementById('motionValue');
 const previewToggleBtn = document.getElementById('previewToggleBtn');
 const wakeLockIndicator = document.getElementById('wakeLockIndicator');
 
-// Schieberegler und deren Wert-Anzeigen
 const sensitivitySlider = document.getElementById('sensitivitySlider');
 const thresholdSlider = document.getElementById('thresholdSlider');
 const cooldownSlider = document.getElementById('cooldownSlider');
 const fpsSelect = document.getElementById('fpsSelect');
+
 const sensitivityValue = document.getElementById('sensitivityValue');
 const thresholdValue = document.getElementById('thresholdValue');
 const cooldownValue = document.getElementById('cooldownValue');
+const actualFpsValue = document.getElementById('actualFpsValue');
 
-// --- EINSTELLUNGEN (JETZT DYNAMISCH ÜBER SCHIEBEREGLER) ---
 let SENSITIVITY = 50;
 let MOTION_THRESHOLD = 0.015;
 let COOLDOWN_TIME = 4000;
 let VIDEO_FPS = 30;
-// -------------------------------------------------------
 
 let stream = null;
 let mediaRecorder = null;
@@ -229,12 +231,10 @@ let isRecording = false;
 let isMotionDetectionActive = false;
 let isPreviewActive = false;
 let lastMotionTime = 0;
-let animationFrameId = null;
 let checkMotionInterval = null;
 let clipCounter = 0;
 let wakeLock = null;
 
-// LocalStorage-Schlüssel
 const STORAGE_KEYS = {
     sensitivity: 'skateCapture_sensitivity',
     threshold: 'skateCapture_threshold',
@@ -242,80 +242,84 @@ const STORAGE_KEYS = {
     fps: 'skateCapture_fps'
 };
 
-// Wake Lock Management
+// ------------------------------------------------------------
+// Wake Lock
+// ------------------------------------------------------------
+
 async function requestWakeLock() {
-    if ('wakeLock' in navigator) {
-        try {
-            wakeLock = await navigator.wakeLock.request('screen');
-            updateWakeLockIndicator(true);
-            
-            // Wenn die Seite visible wird, Wake Lock erneuern
-            document.addEventListener('visibilitychange', async () => {
-                if (document.visibilityState === 'visible' && wakeLock === null) {
-                    await requestWakeLock();
-                }
-            });
-        } catch (err) {
-            console.warn('Wake Lock konnte nicht aktiviert werden:', err);
-            updateWakeLockIndicator(false);
-        }
-    } else {
+    if (!('wakeLock' in navigator)) {
+        updateWakeLockIndicator(false);
+        return;
+    }
+
+    try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        updateWakeLockIndicator(true);
+    } catch (err) {
+        console.warn('Wake Lock konnte nicht aktiviert werden:', err);
         updateWakeLockIndicator(false);
     }
 }
 
 async function releaseWakeLock() {
-    if (wakeLock) {
-        try {
-            await wakeLock.release();
-            wakeLock = null;
-            updateWakeLockIndicator(false);
-        } catch (err) {
-            console.warn('Fehler beim Freigeben des Wake Lock:', err);
-        }
+    if (!wakeLock) return;
+
+    try {
+        await wakeLock.release();
+    } catch (err) {
+        console.warn('Fehler beim Freigeben des Wake Lock:', err);
+    } finally {
+        wakeLock = null;
+        updateWakeLockIndicator(false);
     }
 }
 
 function updateWakeLockIndicator(isActive) {
-    if (isActive) {
-        wakeLockIndicator.textContent = '🔒 Display bleibt an';
-    } else {
-        wakeLockIndicator.textContent = 'Wake Lock nicht verfügbar';
-    }
+    wakeLockIndicator.textContent = isActive
+        ? '🔒 Display bleibt an'
+        : 'Wake Lock nicht verfügbar';
 }
 
-// Funktion zum Laden der gespeicherten Einstellungen
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && isPreviewActive && !wakeLock) {
+        await requestWakeLock();
+    }
+});
+
+// ------------------------------------------------------------
+// Settings
+// ------------------------------------------------------------
+
 function loadSettings() {
     const savedSensitivity = localStorage.getItem(STORAGE_KEYS.sensitivity);
     const savedThreshold = localStorage.getItem(STORAGE_KEYS.threshold);
     const savedCooldown = localStorage.getItem(STORAGE_KEYS.cooldown);
     const savedFps = localStorage.getItem(STORAGE_KEYS.fps);
-    
+
     if (savedSensitivity !== null) {
         sensitivitySlider.value = savedSensitivity;
-        SENSITIVITY = parseInt(savedSensitivity);
+        SENSITIVITY = parseInt(savedSensitivity, 10);
         sensitivityValue.textContent = SENSITIVITY;
     }
-    
+
     if (savedThreshold !== null) {
         thresholdSlider.value = savedThreshold;
         MOTION_THRESHOLD = parseFloat(savedThreshold) / 100;
         thresholdValue.textContent = savedThreshold + '%';
     }
-    
+
     if (savedCooldown !== null) {
         cooldownSlider.value = savedCooldown;
-        COOLDOWN_TIME = parseInt(savedCooldown) * 1000;
+        COOLDOWN_TIME = parseInt(savedCooldown, 10) * 1000;
         cooldownValue.textContent = savedCooldown + 's';
     }
-    
+
     if (savedFps !== null) {
         fpsSelect.value = savedFps;
-        VIDEO_FPS = parseInt(savedFps);
+        VIDEO_FPS = parseInt(savedFps, 10);
     }
 }
 
-// Funktion zum Speichern der Einstellungen
 function saveSettings() {
     localStorage.setItem(STORAGE_KEYS.sensitivity, sensitivitySlider.value);
     localStorage.setItem(STORAGE_KEYS.threshold, thresholdSlider.value);
@@ -323,15 +327,204 @@ function saveSettings() {
     localStorage.setItem(STORAGE_KEYS.fps, fpsSelect.value);
 }
 
-// Einstellungen beim Laden der Seite zurückstellen
-window.addEventListener('DOMContentLoaded', () => {
-    loadSettings();
-    requestWakeLock();
+// ------------------------------------------------------------
+// Camera / FPS
+// ------------------------------------------------------------
+
+function getVideoTrack() {
+    return stream?.getVideoTracks?.()[0] ?? null;
+}
+
+function getActualFPS() {
+    const track = getVideoTrack();
+    if (!track) return null;
+
+    const fps = track.getSettings().frameRate;
+    return Number.isFinite(fps) ? fps : null;
+}
+
+function updateActualFPSDisplay() {
+    const actualFPS = getActualFPS();
+
+    if (actualFPS !== null) {
+        actualFpsValue.textContent = `Kamera: ${actualFPS} FPS`;
+        fpsSelect.title = `Gewählt: ${VIDEO_FPS} FPS | Kamera: ${actualFPS} FPS`;
+    } else {
+        actualFpsValue.textContent = 'Kamera: -- FPS';
+        fpsSelect.title = `Gewählt: ${VIDEO_FPS} FPS`;
+    }
+}
+
+async function applyVideoFPS() {
+    const track = getVideoTrack();
+    if (!track) return null;
+
+    try {
+        await track.applyConstraints({
+            frameRate: {
+                ideal: VIDEO_FPS
+            }
+        });
+
+        const actualFPS = getActualFPS();
+
+        console.log(
+            `Requested FPS: ${VIDEO_FPS}, actual camera FPS: ${actualFPS ?? 'unknown'}`
+        );
+
+        updateActualFPSDisplay();
+        return actualFPS;
+    } catch (err) {
+        console.warn(
+            `Die gewünschte Framerate von ${VIDEO_FPS} FPS konnte nicht angewendet werden:`,
+            err
+        );
+
+        updateActualFPSDisplay();
+        return getActualFPS();
+    }
+}
+
+async function createCameraStream() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Dieser Browser unterstützt keinen Kamerazugriff.');
+    }
+
+    stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: VIDEO_FPS }
+        },
+        audio: true
+    });
+
+    const track = getVideoTrack();
+
+    if (track) {
+        console.log('Camera capabilities:', track.getCapabilities?.());
+        console.log('Camera settings after getUserMedia():', track.getSettings());
+    }
+
+    await applyVideoFPS();
+
+    video.srcObject = stream;
+
+    await new Promise(resolve => {
+        if (video.readyState >= 1) {
+            resolve();
+        } else {
+            video.onloadedmetadata = () => resolve();
+        }
+    });
+
+    canvas.width = 160;
+    canvas.height = 120;
+
+    updateActualFPSDisplay();
+}
+
+function stopCameraStream() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+
+    video.srcObject = null;
+    updateActualFPSDisplay();
+}
+
+// ------------------------------------------------------------
+// Preview
+// ------------------------------------------------------------
+
+previewToggleBtn.addEventListener('click', async () => {
+    if (isPreviewActive) {
+        deactivatePreview();
+    } else {
+        await activatePreview();
+    }
 });
 
-// Event Listener für Schieberegler
+async function activatePreview() {
+    try {
+        if (!stream) {
+            await createCameraStream();
+        } else {
+            await applyVideoFPS();
+        }
+
+        isPreviewActive = true;
+        video.classList.remove('preview-hidden');
+        previewToggleBtn.textContent = 'Live-Preview deaktivieren';
+        previewToggleBtn.classList.add('btn-preview-active');
+
+        statusText.textContent = 'Bereit. Bitte Erkennung starten.';
+        statusText.className = 'status-box status-idle';
+
+        await requestWakeLock();
+    } catch (err) {
+        console.error('Kamera konnte nicht gestartet werden:', err);
+
+        stopCameraStream();
+        isPreviewActive = false;
+
+        alert('Fehler beim Zugriff auf Kamera/Mikrofon: ' + err.message);
+
+        statusText.textContent = 'Kamera konnte nicht gestartet werden.';
+        statusText.className = 'status-box status-idle';
+    }
+}
+
+function deactivatePreview() {
+    isPreviewActive = false;
+
+    if (isMotionDetectionActive) {
+        stopAll();
+    }
+
+    stopCameraStream();
+
+    video.classList.add('preview-hidden');
+    previewToggleBtn.textContent = 'Live-Preview aktivieren';
+    previewToggleBtn.classList.remove('btn-preview-active');
+
+    statusText.textContent = 'Bereit. Bitte Erkennung starten.';
+    statusText.className = 'status-box status-idle';
+
+    releaseWakeLock();
+}
+
+// ------------------------------------------------------------
+// FPS selection
+// ------------------------------------------------------------
+
+fpsSelect.addEventListener('change', async (e) => {
+    const requestedFPS = parseInt(e.target.value, 10);
+    if (!Number.isFinite(requestedFPS)) return;
+
+    VIDEO_FPS = requestedFPS;
+    saveSettings();
+
+    if (!stream) {
+        actualFpsValue.textContent = 'Kamera: -- FPS';
+        return;
+    }
+
+    const actualFPS = await applyVideoFPS();
+
+    console.log(
+        `FPS selection changed: requested=${VIDEO_FPS}, actual=${actualFPS ?? 'unknown'}`
+    );
+});
+
+// ------------------------------------------------------------
+// Other settings
+// ------------------------------------------------------------
+
 sensitivitySlider.addEventListener('input', (e) => {
-    SENSITIVITY = parseInt(e.target.value);
+    SENSITIVITY = parseInt(e.target.value, 10);
     sensitivityValue.textContent = SENSITIVITY;
     saveSettings();
 });
@@ -343,90 +536,30 @@ thresholdSlider.addEventListener('input', (e) => {
 });
 
 cooldownSlider.addEventListener('input', (e) => {
-    COOLDOWN_TIME = parseInt(e.target.value) * 1000;
+    COOLDOWN_TIME = parseInt(e.target.value, 10) * 1000;
     cooldownValue.textContent = e.target.value + 's';
     saveSettings();
 });
 
-// Event Listener für FPS-Auswahl
-fpsSelect.addEventListener('change', (e) => {
-    VIDEO_FPS = parseInt(e.target.value);
-    saveSettings();
-});
-
-// Preview Toggle Button
-previewToggleBtn.addEventListener('click', () => {
-    if (isPreviewActive) {
-        deactivatePreview();
-    } else {
-        activatePreview();
-    }
-});
-
-async function activatePreview() {
-    try {
-        if (!stream) {
-            // Nutzt bevorzugt die Rückkamera (environment)
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { 
-                    facingMode: 'environment', 
-                    width: { ideal: 1280 }, 
-                    height: { ideal: 720 },
-                    frameRate: { ideal: VIDEO_FPS }
-                },
-                audio: true // Ton wird mitaufgenommen
-            });
-            
-            video.srcObject = stream;
-            
-            // Warte bis Video Metadaten geladen sind, um Canvas-Größe anzupassen
-            video.onloadedmetadata = () => {
-                canvas.width = 160; // Geringe Auflösung reicht völlig für die Bewegungserkennung (spart Akku)
-                canvas.height = 120;
-            };
-        }
-        
-        isPreviewActive = true;
-        video.classList.remove('preview-hidden');
-        previewToggleBtn.textContent = 'Live-Preview deaktivieren';
-        previewToggleBtn.classList.add('btn-preview-active');
-        statusText.textContent = "Bereit. Bitte Erkennung starten.";
-        statusText.className = "status-box status-idle";
-        
-    } catch (err) {
-        alert("Fehler beim Zugriff auf Kamera/Mikrofon: " + err.message);
-        statusText.textContent = "Kamera konnte nicht gestartet werden.";
-        statusText.className = "status-box status-idle";
-    }
-}
-
-function deactivatePreview() {
-    isPreviewActive = false;
-    video.classList.add('preview-hidden');
-    previewToggleBtn.textContent = 'Live-Preview aktivieren';
-    previewToggleBtn.classList.remove('btn-preview-active');
-    
-    // Stoppe Erkennung wenn aktiv
-    if (isMotionDetectionActive) {
-        stopAll();
-    }
-    
-    statusText.textContent = "Bereit. Bitte Erkennung starten.";
-    statusText.className = "status-box status-idle";
-}
+// ------------------------------------------------------------
+// Motion detection
+// ------------------------------------------------------------
 
 startBtn.addEventListener('click', () => {
     if (!stream) {
-        alert("Kamera nicht verfügbar. Bitte Live-Preview aktivieren.");
+        alert('Kamera nicht verfügbar. Bitte Live-Preview aktivieren.');
         return;
     }
-    
-    // Starte Bewegungserkennung und Aufnahme
+
     startBtn.style.display = 'none';
     stopBtn.style.display = 'block';
+
     isMotionDetectionActive = true;
-    statusText.textContent = "Warte auf Bewegung...";
-    statusText.className = "status-box status-idle";
+    previousFrame = null;
+
+    statusText.textContent = 'Warte auf Bewegung...';
+    statusText.className = 'status-box status-idle';
+
     startMotionDetection();
 });
 
@@ -436,140 +569,224 @@ stopBtn.addEventListener('click', () => {
 
 function stopAll() {
     if (isRecording) {
-        stopVideoRecording(false); // Stoppe aktuelle Aufnahme ohne automatischen Download
+        stopVideoRecording(false);
     }
+
     isMotionDetectionActive = false;
-    cancelAnimationFrame(animationFrameId);
-    clearInterval(checkMotionInterval);
-    
+
+    if (checkMotionInterval !== null) {
+        clearInterval(checkMotionInterval);
+        checkMotionInterval = null;
+    }
+
     startBtn.style.display = 'block';
     stopBtn.style.display = 'none';
-    statusText.textContent = "Bereit. Bitte Erkennung starten.";
-    statusText.className = "status-box status-idle";
+
+    statusText.textContent = 'Bereit. Bitte Erkennung starten.';
+    statusText.className = 'status-box status-idle';
+
     previousFrame = null;
 }
 
 function startMotionDetection() {
+    if (checkMotionInterval !== null) {
+        clearInterval(checkMotionInterval);
+    }
+
     checkMotionInterval = setInterval(() => {
-        if (!stream || !isMotionDetectionActive) return;
-        
-        // Zeichne aktuelles Videobild verkleinert auf das Canvas
+        if (!stream || !isMotionDetectionActive || video.readyState < 2) {
+            return;
+        }
+
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
+
+        const currentFrame = ctx.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
         if (previousFrame) {
             let changedPixels = 0;
             const totalPixels = currentFrame.data.length / 4;
-            
+
             for (let i = 0; i < currentFrame.data.length; i += 4) {
-                let rDiff = Math.abs(currentFrame.data[i] - previousFrame.data[i]);
-                let gDiff = Math.abs(currentFrame.data[i+1] - previousFrame.data[i+1]);
-                let bDiff = Math.abs(currentFrame.data[i+2] - previousFrame.data[i+2]);
-                
+                const rDiff = Math.abs(
+                    currentFrame.data[i] - previousFrame.data[i]
+                );
+                const gDiff = Math.abs(
+                    currentFrame.data[i + 1] - previousFrame.data[i + 1]
+                );
+                const bDiff = Math.abs(
+                    currentFrame.data[i + 2] - previousFrame.data[i + 2]
+                );
+
                 if (rDiff + gDiff + bDiff > SENSITIVITY) {
                     changedPixels++;
                 }
             }
-            
+
             const motionRatio = changedPixels / totalPixels;
-            motionValueText.textContent = `Bewegung: ${(motionRatio * 100).toFixed(1)}%`;
-            
+
+            motionValueText.textContent =
+                `Bewegung: ${(motionRatio * 100).toFixed(1)}%`;
+
             if (motionRatio > MOTION_THRESHOLD) {
                 lastMotionTime = Date.now();
+
                 if (!isRecording) {
                     startVideoRecording();
                 }
-            } else {
-                // Keine Bewegung. Prüfen, ob Nachlaufzeit abgelaufen ist
-                if (isRecording && (Date.now() - lastMotionTime > COOLDOWN_TIME)) {
-                    stopVideoRecording(true); // Stoppen und automatisch herunterladen
-                }
+            } else if (
+                isRecording &&
+                Date.now() - lastMotionTime > COOLDOWN_TIME
+            ) {
+                stopVideoRecording(true);
             }
         }
-        
+
         previousFrame = currentFrame;
-    }, 100); // Prüft 10 Mal pro Sekunde auf Bewegung
+    }, 100);
+}
+
+// ------------------------------------------------------------
+// Recording
+// ------------------------------------------------------------
+
+function getSupportedVideoMimeType() {
+    const mimeTypes = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'video/mp4'
+    ];
+
+    return mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
 }
 
 function startVideoRecording() {
-    isRecording = true;
-    recordedChunks = [];
-    statusText.textContent = "● AUFNAHME LÄUFT...";
-    statusText.className = "status-box status-recording";
-    
-    // Finde unterstützten Codec (häufig mp4/webm auf Android)
-    let options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: VIDEO_FPS * 500000 };
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: VIDEO_FPS * 500000 };
-    }
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/mp4', videoBitsPerSecond: VIDEO_FPS * 500000 };
-    }
-    
+    if (!stream || isRecording) return;
+
+    const mimeType = getSupportedVideoMimeType();
+
+    // The FPS is controlled by the MediaStreamTrack. The bitrate is independent.
+    const options = mimeType
+        ? {
+            mimeType,
+            videoBitsPerSecond: 12_000_000
+        }
+        : {
+            videoBitsPerSecond: 12_000_000
+        };
+
     try {
         mediaRecorder = new MediaRecorder(stream, options);
     } catch (e) {
+        console.warn('MediaRecorder mit Optionen fehlgeschlagen:', e);
         mediaRecorder = new MediaRecorder(stream);
     }
-    
+
+    recordedChunks = [];
+    isRecording = true;
+
+    const actualFPS = getActualFPS();
+
+    console.log(
+        `Recording started. Requested FPS: ${VIDEO_FPS}, actual camera FPS: ${actualFPS ?? 'unknown'}, mimeType: ${mediaRecorder.mimeType}`
+    );
+
+    statusText.textContent =
+        `● AUFNAHME LÄUFT... (${actualFPS ? actualFPS + ' FPS' : 'FPS unbekannt'})`;
+    statusText.className = 'status-box status-recording';
+
     mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
             recordedChunks.push(event.data);
         }
     };
-    
+
+    mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event.error);
+        isRecording = false;
+    };
+
     mediaRecorder.onstop = () => {
         if (recordedChunks.length > 0) {
             triggerAutoDownload();
         }
     };
-    
+
     mediaRecorder.start();
 }
 
 function stopVideoRecording(shouldSave) {
     isRecording = false;
-    statusText.textContent = "Warte auf Bewegung...";
-    statusText.className = "status-box status-idle";
-    
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        if (!shouldSave) {
-            // Falls manuell gestoppt wird, breche den automatischen Download ab
-            mediaRecorder.onstop = null; 
-        }
-        mediaRecorder.stop();
+
+    if (isMotionDetectionActive) {
+        statusText.textContent = 'Warte auf Bewegung...';
+        statusText.className = 'status-box status-idle';
     }
+
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        return;
+    }
+
+    if (!shouldSave) {
+        mediaRecorder.onstop = null;
+    }
+
+    mediaRecorder.stop();
 }
 
 function triggerAutoDownload() {
-    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/webm' });
+    if (!mediaRecorder || recordedChunks.length === 0) {
+        return;
+    }
+
+    const mimeType = mediaRecorder.mimeType || 'video/webm';
+    const blob = new Blob(recordedChunks, { type: mimeType });
     const url = URL.createObjectURL(blob);
-    
-    // Generiere einen eindeutigen Dateinamen mit Zeitstempel
+
     const now = new Date();
     const timeStr = now.toISOString().replace(/[:.]/g, '-');
+
     clipCounter++;
     clipCountText.textContent = `Gespeicherte Clips: ${clipCounter}`;
-    
-    // Erstelle ein unsichtbares Download-Element
+
+    const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    a.download = `Skate_Clip_${timeStr}.webm`;
-    
+    a.download = `Skate_Clip_${timeStr}.${extension}`;
+
     document.body.appendChild(a);
-    a.click(); // Löst den automatischen Download aus
-    
-    // Aufräumen
+    a.click();
+
     setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }, 100);
 }
 
-// Wake Lock freigeben, wenn die Seite verlassen wird
+// ------------------------------------------------------------
+// Initialization / cleanup
+// ------------------------------------------------------------
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    updateActualFPSDisplay();
+});
+
 window.addEventListener('beforeunload', () => {
-    releaseWakeLock();
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+
+    if (wakeLock) {
+        releaseWakeLock();
+    }
 });
 </script>
 
