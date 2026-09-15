@@ -123,6 +123,12 @@
         }
         canvas { display: none; }
         .preview-hidden { display: none; }
+        .wake-lock-indicator {
+            font-size: 0.75rem;
+            color: #00ff88;
+            margin-top: 8px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -183,6 +189,8 @@
             </select>
         </div>
     </div>
+    
+    <div class="wake-lock-indicator" id="wakeLockIndicator"></div>
 </div>
 
 <script>
@@ -195,6 +203,7 @@ const statusText = document.getElementById('statusText');
 const clipCountText = document.getElementById('clipCount');
 const motionValueText = document.getElementById('motionValue');
 const previewToggleBtn = document.getElementById('previewToggleBtn');
+const wakeLockIndicator = document.getElementById('wakeLockIndicator');
 
 // Schieberegler und deren Wert-Anzeigen
 const sensitivitySlider = document.getElementById('sensitivitySlider');
@@ -223,6 +232,7 @@ let lastMotionTime = 0;
 let animationFrameId = null;
 let checkMotionInterval = null;
 let clipCounter = 0;
+let wakeLock = null;
 
 // LocalStorage-Schlüssel
 const STORAGE_KEYS = {
@@ -231,6 +241,48 @@ const STORAGE_KEYS = {
     cooldown: 'skateCapture_cooldown',
     fps: 'skateCapture_fps'
 };
+
+// Wake Lock Management
+async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            updateWakeLockIndicator(true);
+            
+            // Wenn die Seite visible wird, Wake Lock erneuern
+            document.addEventListener('visibilitychange', async () => {
+                if (document.visibilityState === 'visible' && wakeLock === null) {
+                    await requestWakeLock();
+                }
+            });
+        } catch (err) {
+            console.warn('Wake Lock konnte nicht aktiviert werden:', err);
+            updateWakeLockIndicator(false);
+        }
+    } else {
+        updateWakeLockIndicator(false);
+    }
+}
+
+async function releaseWakeLock() {
+    if (wakeLock) {
+        try {
+            await wakeLock.release();
+            wakeLock = null;
+            updateWakeLockIndicator(false);
+        } catch (err) {
+            console.warn('Fehler beim Freigeben des Wake Lock:', err);
+        }
+    }
+}
+
+function updateWakeLockIndicator(isActive) {
+    if (isActive) {
+        wakeLockIndicator.textContent = '🔒 Display bleibt an';
+    } else {
+        wakeLockIndicator.textContent = 'Wake Lock nicht verfügbar';
+    }
+}
 
 // Funktion zum Laden der gespeicherten Einstellungen
 function loadSettings() {
@@ -274,6 +326,7 @@ function saveSettings() {
 // Einstellungen beim Laden der Seite zurückstellen
 window.addEventListener('DOMContentLoaded', () => {
     loadSettings();
+    requestWakeLock();
 });
 
 // Event Listener für Schieberegler
@@ -513,6 +566,11 @@ function triggerAutoDownload() {
         URL.revokeObjectURL(url);
     }, 100);
 }
+
+// Wake Lock freigeben, wenn die Seite verlassen wird
+window.addEventListener('beforeunload', () => {
+    releaseWakeLock();
+});
 </script>
 
 </body>
