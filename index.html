@@ -178,16 +178,7 @@
             <input type="range" id="cooldownSlider" min="1" max="10" value="4">
         </div>
 
-        <div class="setting-row">
-            <div class="setting-label">
-                <span>Video FPS</span>
-            </div>
-            <select id="fpsSelect">
-                <option value="24">24 FPS</option>
-                <option value="30" selected>30 FPS</option>
-                <option value="60">60 FPS</option>
-            </select>
-        </div>
+
     </div>
     
     <div class="wake-lock-indicator" id="wakeLockIndicator"></div>
@@ -209,7 +200,6 @@ const wakeLockIndicator = document.getElementById('wakeLockIndicator');
 const sensitivitySlider = document.getElementById('sensitivitySlider');
 const thresholdSlider = document.getElementById('thresholdSlider');
 const cooldownSlider = document.getElementById('cooldownSlider');
-const fpsSelect = document.getElementById('fpsSelect');
 const sensitivityValue = document.getElementById('sensitivityValue');
 const thresholdValue = document.getElementById('thresholdValue');
 const cooldownValue = document.getElementById('cooldownValue');
@@ -239,7 +229,6 @@ const STORAGE_KEYS = {
     sensitivity: 'skateCapture_sensitivity',
     threshold: 'skateCapture_threshold',
     cooldown: 'skateCapture_cooldown',
-    fps: 'skateCapture_fps'
 };
 
 // Wake Lock Management
@@ -289,7 +278,6 @@ function loadSettings() {
     const savedSensitivity = localStorage.getItem(STORAGE_KEYS.sensitivity);
     const savedThreshold = localStorage.getItem(STORAGE_KEYS.threshold);
     const savedCooldown = localStorage.getItem(STORAGE_KEYS.cooldown);
-    const savedFps = localStorage.getItem(STORAGE_KEYS.fps);
     
     if (savedSensitivity !== null) {
         sensitivitySlider.value = savedSensitivity;
@@ -309,10 +297,7 @@ function loadSettings() {
         cooldownValue.textContent = savedCooldown + 's';
     }
     
-    if (savedFps !== null) {
-        fpsSelect.value = savedFps;
-        VIDEO_FPS = parseInt(savedFps);
-    }
+    
 }
 
 // Funktion zum Speichern der Einstellungen
@@ -320,7 +305,7 @@ function saveSettings() {
     localStorage.setItem(STORAGE_KEYS.sensitivity, sensitivitySlider.value);
     localStorage.setItem(STORAGE_KEYS.threshold, thresholdSlider.value);
     localStorage.setItem(STORAGE_KEYS.cooldown, cooldownSlider.value);
-    localStorage.setItem(STORAGE_KEYS.fps, fpsSelect.value);
+    
 }
 
 // Einstellungen beim Laden der Seite zurückstellen
@@ -345,12 +330,6 @@ thresholdSlider.addEventListener('input', (e) => {
 cooldownSlider.addEventListener('input', (e) => {
     COOLDOWN_TIME = parseInt(e.target.value) * 1000;
     cooldownValue.textContent = e.target.value + 's';
-    saveSettings();
-});
-
-// Event Listener für FPS-Auswahl
-fpsSelect.addEventListener('change', (e) => {
-    VIDEO_FPS = parseInt(e.target.value);
     saveSettings();
 });
 
@@ -498,12 +477,12 @@ function startVideoRecording() {
     statusText.className = "status-box status-recording";
     
     // Finde unterstützten Codec (häufig mp4/webm auf Android)
-    let options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: VIDEO_FPS * 500000 };
+    let options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 12_000_000 };
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: VIDEO_FPS * 500000 };
+        options = { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 12_000_000 };
     }
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/mp4', videoBitsPerSecond: VIDEO_FPS * 500000 };
+        options = { mimeType: 'video/mp4', videoBitsPerSecond: 12_000_000};
     }
     
     try {
