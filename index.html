@@ -1,149 +1,34 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skate Motion Capture</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        h1 { color: #00ff88; font-size: 1.5rem; margin-bottom: 10px; }
-        .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; }
-        video { width: 100%; border-radius: 8px; background-color: #222; transform: scaleX(1); }
-        .controls { display: flex; gap: 10px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
-        .btn-start { background-color: #00ff88; color: #121212; }
-        .btn-start:hover { background-color: #00cc6e; }
-        .btn-stop { background-color: #ff3333; color: white; }
-        .btn-stop:hover { background-color: #cc0000; }
-        .btn-preview { background-color: #0088ff; color: white; }
-        .btn-preview:hover { background-color: #0066cc; }
-        .btn-preview-active { background-color: #00ff88; color: #121212; }
-        .btn-preview-active:hover { background-color: #00cc6e; }
-        .camera-mode-control { display: flex; flex-direction: column; gap: 8px; }
-        .camera-mode-control label { color: #00ff88; font-size: 0.9rem; font-weight: bold; }
-        .status-box { padding: 15px; border-radius: 6px; background-color: #1e1e1e; text-align: center; font-size: 1.1rem; font-weight: bold; border: 1px solid #333; }
-        .status-idle { color: #aaaaaa; }
-        .status-recording { color: #ff3333; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        .stats { font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; padding: 0 5px; }
-        .settings { background-color: #1e1e1e; padding: 15px; border-radius: 6px; border: 1px solid #333; display: flex; flex-direction: column; gap: 12px; }
-        .setting-row { display: flex; flex-direction: column; gap: 8px; }
-        .setting-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #00ff88; font-weight: bold; }
-        .setting-value { color: #888; font-size: 0.85rem; }
-        input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: #333; outline: none; -webkit-appearance: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #00ff88; cursor: pointer; box-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
-        input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #00ff88; cursor: pointer; border: none; box-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
-        select { width: 100%; padding: 8px; border-radius: 6px; background-color: #2a2a2a; color: #00ff88; border: 1px solid #444; font-weight: bold; font-size: 0.9rem; cursor: pointer; }
-        select option { background-color: #1e1e1e; color: #00ff88; }
-        select:hover { background-color: #333; }
-        canvas { display: none; }
-        .preview-hidden { display: none; }
-        .wake-lock-indicator { font-size: 0.75rem; color: #00ff88; margin-top: 8px; text-align: center; }
-    </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Skate Motion Capture</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#121212;color:#fff;margin:0;padding:20px;display:flex;flex-direction:column;align-items:center}h1{color:#00ff88;font-size:1.5rem;margin-bottom:10px}.container{width:100%;max-width:500px;display:flex;flex-direction:column;gap:15px}video{width:100%;border-radius:8px;background:#222}.controls{display:flex;gap:10px}button{flex:1;padding:12px;border:0;border-radius:6px;font-weight:bold;font-size:1rem;cursor:pointer}.btn-start{background:#00ff88;color:#121212}.btn-stop{background:#ff3333;color:#fff}.btn-preview{background:#0088ff;color:#fff}.btn-preview-active{background:#00ff88;color:#121212}.camera-mode-control{display:flex;flex-direction:column;gap:8px}.camera-mode-control label{color:#00ff88;font-size:.9rem;font-weight:bold}.status-box{padding:15px;border-radius:6px;background:#1e1e1e;text-align:center;font-size:1.1rem;font-weight:bold;border:1px solid #333}.status-idle{color:#aaa}.status-recording{color:#f33;animation:blink 1s infinite}@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}.stats{font-size:.85rem;color:#888;display:flex;justify-content:space-between;padding:0 5px}.settings{background:#1e1e1e;padding:15px;border-radius:6px;border:1px solid #333;display:flex;flex-direction:column;gap:12px}.setting-row{display:flex;flex-direction:column;gap:8px}.setting-label{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;color:#00ff88;font-weight:bold}.setting-value{color:#888;font-size:.85rem}input[type=range]{width:100%}select{width:100%;padding:8px;border-radius:6px;background:#2a2a2a;color:#00ff88;border:1px solid #444;font-weight:bold;font-size:.9rem}canvas{display:none}.preview-hidden{display:none}.wake-lock-indicator{font-size:.75rem;color:#00ff88;margin-top:8px;text-align:center}
+</style>
 </head>
-<body>
-<div class="container">
-    <h1>Skate Motion Capture</h1>
-    <button class="btn-preview" id="previewToggleBtn">Live-Preview aktivieren</button>
-    <video id="preview" autoplay playsinline muted class="preview-hidden"></video>
-
-    <div class="camera-mode-control">
-        <label for="cameraModeSelect">Kamera-Modus</label>
-        <select id="cameraModeSelect" disabled>
-            <option value="normal">Normal</option>
-            <option value="wide">Weitwinkel</option>
-        </select>
-    </div>
-
-    <canvas id="motionCanvas"></canvas>
-    <div class="controls">
-        <button class="btn-start" id="startBtn">Erkennung Starten</button>
-        <button class="btn-stop" id="stopBtn" style="display:none;">Stoppen</button>
-    </div>
-    <div class="status-box status-idle" id="statusText">Bereit. Bitte Erkennung starten.</div>
-    <div class="stats"><span id="clipCount">Gespeicherte Clips: 0</span><span id="motionValue">Bewegung: 0%</span></div>
-    <div class="settings">
-        <div class="setting-row"><div class="setting-label"><span>Empfindlichkeit (Sensitivity)</span><span class="setting-value" id="sensitivityValue">50</span></div><input type="range" id="sensitivitySlider" min="0" max="255" value="50"></div>
-        <div class="setting-row"><div class="setting-label"><span>Bewegungsschwelle (Motion Threshold)</span><span class="setting-value" id="thresholdValue">1.5%</span></div><input type="range" id="thresholdSlider" min="0.5" max="10" step="0.5" value="1.5"></div>
-        <div class="setting-row"><div class="setting-label"><span>Nachlaufzeit (Cooldown)</span><span class="setting-value" id="cooldownValue">4s</span></div><input type="range" id="cooldownSlider" min="1" max="10" value="4"></div>
-    </div>
-    <div class="wake-lock-indicator" id="wakeLockIndicator"></div>
-</div>
+<body><div class="container">
+<h1>Skate Motion Capture</h1>
+<button class="btn-preview" id="previewToggleBtn">Live-Preview aktivieren</button>
+<video id="preview" autoplay playsinline muted class="preview-hidden"></video>
+<div class="camera-mode-control"><label for="cameraModeSelect">Kamera-Modus</label><select id="cameraModeSelect" disabled><option value="rear-normal">Rück-Normal-Kamera</option><option value="rear-wide">Rück-Weitwinkel-Kamera</option><option value="front">Front-Kamera</option></select></div>
+<canvas id="motionCanvas"></canvas>
+<div class="controls"><button class="btn-start" id="startBtn">Erkennung Starten</button><button class="btn-stop" id="stopBtn" style="display:none">Stoppen</button></div>
+<div class="status-box status-idle" id="statusText">Bereit. Bitte Erkennung starten.</div>
+<div class="stats"><span id="clipCount">Gespeicherte Clips: 0</span><span id="motionValue">Bewegung: 0%</span></div>
+<div class="settings"><div class="setting-row"><div class="setting-label"><span>Empfindlichkeit (Sensitivity)</span><span class="setting-value" id="sensitivityValue">50</span></div><input type="range" id="sensitivitySlider" min="0" max="255" value="50"></div><div class="setting-row"><div class="setting-label"><span>Bewegungsschwelle (Motion Threshold)</span><span class="setting-value" id="thresholdValue">1.5%</span></div><input type="range" id="thresholdSlider" min="0.5" max="10" step="0.5" value="1.5"></div><div class="setting-row"><div class="setting-label"><span>Nachlaufzeit (Cooldown)</span><span class="setting-value" id="cooldownValue">4s</span></div><input type="range" id="cooldownSlider" min="1" max="10" value="4"></div></div>
+<div class="wake-lock-indicator" id="wakeLockIndicator"></div></div>
 <script>
-const video = document.getElementById('preview');
-const canvas = document.getElementById('motionCanvas');
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
-const startBtn = document.getElementById('startBtn');
-const stopBtn = document.getElementById('stopBtn');
-const statusText = document.getElementById('statusText');
-const clipCountText = document.getElementById('clipCount');
-const motionValueText = document.getElementById('motionValue');
-const previewToggleBtn = document.getElementById('previewToggleBtn');
-const cameraModeSelect = document.getElementById('cameraModeSelect');
-const wakeLockIndicator = document.getElementById('wakeLockIndicator');
-const sensitivitySlider = document.getElementById('sensitivitySlider');
-const thresholdSlider = document.getElementById('thresholdSlider');
-const cooldownSlider = document.getElementById('cooldownSlider');
-const sensitivityValue = document.getElementById('sensitivityValue');
-const thresholdValue = document.getElementById('thresholdValue');
-const cooldownValue = document.getElementById('cooldownValue');
-let SENSITIVITY = 50, MOTION_THRESHOLD = 0.015, COOLDOWN_TIME = 4000, VIDEO_FPS = 30;
-let stream = null, mediaRecorder = null, recordedChunks = [], previousFrame = null;
-let isRecording = false, isMotionDetectionActive = false, isPreviewActive = false;
-let lastMotionTime = 0, animationFrameId = null, checkMotionInterval = null, clipCounter = 0, wakeLock = null;
-let cameraMode = 'normal';
-const STORAGE_KEYS = { sensitivity: 'skateCapture_sensitivity', threshold: 'skateCapture_threshold', cooldown: 'skateCapture_cooldown' };
-
-async function requestWakeLock() {
-    if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); updateWakeLockIndicator(true); document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && wakeLock === null) await requestWakeLock(); }); } catch (err) { console.warn('Wake Lock konnte nicht aktiviert werden:', err); updateWakeLockIndicator(false); } } else updateWakeLockIndicator(false);
-}
-async function releaseWakeLock() { if (wakeLock) { try { await wakeLock.release(); wakeLock = null; updateWakeLockIndicator(false); } catch (err) { console.warn('Fehler beim Freigeben des Wake Lock:', err); } } }
-function updateWakeLockIndicator(active) { wakeLockIndicator.textContent = active ? '🔒 Display bleibt an' : 'Wake Lock nicht verfügbar'; }
-function loadSettings() {
-    const s = localStorage.getItem(STORAGE_KEYS.sensitivity), t = localStorage.getItem(STORAGE_KEYS.threshold), c = localStorage.getItem(STORAGE_KEYS.cooldown);
-    if (s !== null) { sensitivitySlider.value = s; SENSITIVITY = parseInt(s); sensitivityValue.textContent = SENSITIVITY; }
-    if (t !== null) { thresholdSlider.value = t; MOTION_THRESHOLD = parseFloat(t) / 100; thresholdValue.textContent = t + '%'; }
-    if (c !== null) { cooldownSlider.value = c; COOLDOWN_TIME = parseInt(c) * 1000; cooldownValue.textContent = c + 's'; }
-}
-function saveSettings() { localStorage.setItem(STORAGE_KEYS.sensitivity, sensitivitySlider.value); localStorage.setItem(STORAGE_KEYS.threshold, thresholdSlider.value); localStorage.setItem(STORAGE_KEYS.cooldown, cooldownSlider.value); }
-window.addEventListener('DOMContentLoaded', () => { loadSettings(); requestWakeLock(); });
-sensitivitySlider.addEventListener('input', e => { SENSITIVITY = parseInt(e.target.value); sensitivityValue.textContent = SENSITIVITY; saveSettings(); });
-thresholdSlider.addEventListener('input', e => { MOTION_THRESHOLD = parseFloat(e.target.value) / 100; thresholdValue.textContent = e.target.value + '%'; saveSettings(); });
-cooldownSlider.addEventListener('input', e => { COOLDOWN_TIME = parseInt(e.target.value) * 1000; cooldownValue.textContent = e.target.value + 's'; saveSettings(); });
-previewToggleBtn.addEventListener('click', () => isPreviewActive ? deactivatePreview() : activatePreview());
-
-function isWideCamera(device) { return /wide|ultra|0\.5x|0,5x|weitwinkel/i.test(device.label || ''); }
-async function openCamera(mode) {
-    const baseVideo = { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: VIDEO_FPS } };
-    let devices = [];
-    try { devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput'); } catch (err) { console.warn('Kameras konnten nicht aufgelistet werden:', err); }
-    const matchingDevice = mode === 'wide' ? devices.find(isWideCamera) : devices.find(d => !isWideCamera(d));
-    const constraints = { video: matchingDevice ? { ...baseVideo, deviceId: { exact: matchingDevice.deviceId } } : baseVideo, audio: true };
-    stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = stream;
-    cameraModeSelect.disabled = false;
-    video.onloadedmetadata = () => { canvas.width = 160; canvas.height = 120; };
-    if (mode === 'wide' && !matchingDevice) statusText.textContent = 'Weitwinkelkamera nicht verfügbar – normale Kamera verwendet.';
-}
-async function activatePreview() {
-    try { if (!stream) await openCamera(cameraMode); isPreviewActive = true; video.classList.remove('preview-hidden'); previewToggleBtn.textContent = 'Live-Preview deaktivieren'; previewToggleBtn.classList.add('btn-preview-active'); if (!(cameraMode === 'wide' && !isWideCamera((await navigator.mediaDevices.enumerateDevices()).find(d => d.deviceId === stream.getVideoTracks()[0].getSettings().deviceId) || {}))) { statusText.textContent = 'Bereit. Bitte Erkennung starten.'; statusText.className = 'status-box status-idle'; } } catch (err) { alert('Fehler beim Zugriff auf Kamera/Mikrofon: ' + err.message); statusText.textContent = 'Kamera konnte nicht gestartet werden.'; statusText.className = 'status-box status-idle'; }
-}
-function stopCameraStream() { if (stream) stream.getTracks().forEach(track => track.stop()); stream = null; video.srcObject = null; }
-function deactivatePreview() { isPreviewActive = false; if (isMotionDetectionActive) stopAll(); video.classList.add('preview-hidden'); previewToggleBtn.textContent = 'Live-Preview aktivieren'; previewToggleBtn.classList.remove('btn-preview-active'); statusText.textContent = 'Bereit. Bitte Erkennung starten.'; statusText.className = 'status-box status-idle'; }
-
-cameraModeSelect.addEventListener('change', async e => {
-    const oldMode = cameraMode; cameraMode = e.target.value; cameraModeSelect.disabled = true;
-    const wasDetecting = isMotionDetectionActive; if (wasDetecting) stopAll(); stopCameraStream();
-    try { await openCamera(cameraMode); isPreviewActive = true; video.classList.remove('preview-hidden'); statusText.textContent = 'Bereit. Bitte Erkennung starten.'; statusText.className = 'status-box status-idle'; } catch (err) { cameraMode = oldMode; cameraModeSelect.value = oldMode; statusText.textContent = 'Kamera-Modus konnte nicht gewechselt werden.'; statusText.className = 'status-box status-idle'; try { await openCamera(oldMode); } catch (restoreErr) { console.warn('Kamera konnte nicht wiederhergestellt werden:', restoreErr); } } finally { cameraModeSelect.disabled = false; }
-});
-startBtn.addEventListener('click', () => { if (!stream) { alert('Kamera nicht verfügbar. Bitte Live-Preview aktivieren.'); return; } startBtn.style.display = 'none'; stopBtn.style.display = 'block'; isMotionDetectionActive = true; statusText.textContent = 'Warte auf Bewegung...'; statusText.className = 'status-box status-idle'; startMotionDetection(); });
-stopBtn.addEventListener('click', stopAll);
-function stopAll() { if (isRecording) stopVideoRecording(false); isMotionDetectionActive = false; cancelAnimationFrame(animationFrameId); clearInterval(checkMotionInterval); startBtn.style.display = 'block'; stopBtn.style.display = 'none'; statusText.textContent = 'Bereit. Bitte Erkennung starten.'; statusText.className = 'status-box status-idle'; previousFrame = null; }
-function startMotionDetection() { checkMotionInterval = setInterval(() => { if (!stream || !isMotionDetectionActive) return; ctx.drawImage(video, 0, 0, canvas.width, canvas.height); const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height); if (previousFrame) { let changedPixels = 0; const totalPixels = currentFrame.data.length / 4; for (let i = 0; i < currentFrame.data.length; i += 4) { if (Math.abs(currentFrame.data[i] - previousFrame.data[i]) + Math.abs(currentFrame.data[i + 1] - previousFrame.data[i + 1]) + Math.abs(currentFrame.data[i + 2] - previousFrame.data[i + 2]) > SENSITIVITY) changedPixels++; } const motionRatio = changedPixels / totalPixels; motionValueText.textContent = `Bewegung: ${(motionRatio * 100).toFixed(1)}%`; if (motionRatio > MOTION_THRESHOLD) { lastMotionTime = Date.now(); if (!isRecording) startVideoRecording(); } else if (isRecording && Date.now() - lastMotionTime > COOLDOWN_TIME) stopVideoRecording(true); } previousFrame = currentFrame; }, 100); }
-function startVideoRecording() { isRecording = true; recordedChunks = []; statusText.textContent = '● AUFNAHME LÄUFT...'; statusText.className = 'status-box status-recording'; let options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 12000000 }; if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 12000000 }; if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/mp4', videoBitsPerSecond: 12000000 }; try { mediaRecorder = new MediaRecorder(stream, options); } catch (e) { mediaRecorder = new MediaRecorder(stream); } mediaRecorder.ondataavailable = event => { if (event.data && event.data.size > 0) recordedChunks.push(event.data); }; mediaRecorder.onstop = () => { if (recordedChunks.length > 0) triggerAutoDownload(); }; mediaRecorder.start(); }
-function stopVideoRecording(shouldSave) { isRecording = false; statusText.textContent = 'Warte auf Bewegung...'; statusText.className = 'status-box status-idle'; if (mediaRecorder && mediaRecorder.state !== 'inactive') { if (!shouldSave) mediaRecorder.onstop = null; mediaRecorder.stop(); } }
-function triggerAutoDownload() { const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/webm' }); const url = URL.createObjectURL(blob); const timeStr = new Date().toISOString().replace(/[:.]/g, '-'); clipCounter++; clipCountText.textContent = `Gespeicherte Clips: ${clipCounter}`; const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = `Skate_Clip_${timeStr}.webm`; document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100); }
-window.addEventListener('beforeunload', () => { releaseWakeLock(); stopCameraStream(); });
-</script>
-</body>
-</html>
+const video=document.getElementById('preview'),canvas=document.getElementById('motionCanvas'),ctx=canvas.getContext('2d',{willReadFrequently:true}),startBtn=document.getElementById('startBtn'),stopBtn=document.getElementById('stopBtn'),statusText=document.getElementById('statusText'),clipCountText=document.getElementById('clipCount'),motionValueText=document.getElementById('motionValue'),previewToggleBtn=document.getElementById('previewToggleBtn'),cameraModeSelect=document.getElementById('cameraModeSelect'),wakeLockIndicator=document.getElementById('wakeLockIndicator'),sensitivitySlider=document.getElementById('sensitivitySlider'),thresholdSlider=document.getElementById('thresholdSlider'),cooldownSlider=document.getElementById('cooldownSlider'),sensitivityValue=document.getElementById('sensitivityValue'),thresholdValue=document.getElementById('thresholdValue'),cooldownValue=document.getElementById('cooldownValue');
+let SENSITIVITY=50,MOTION_THRESHOLD=.015,COOLDOWN_TIME=4000,VIDEO_FPS=30,stream=null,mediaRecorder=null,recordedChunks=[],previousFrame=null,isRecording=false,isMotionDetectionActive=false,isPreviewActive=false,lastMotionTime=0,checkMotionInterval=null,clipCounter=0,wakeLock=null,cameraMode='rear-normal';
+const STORAGE_KEYS={sensitivity:'skateCapture_sensitivity',threshold:'skateCapture_threshold',cooldown:'skateCapture_cooldown'};
+function isWideCamera(d){return /wide|ultra|0[.,]5x|weitwinkel/i.test(d.label||'')}function isFrontCamera(d){return /front|user|selfie|face/i.test(d.label||'')}
+async function requestWakeLock(){if('wakeLock'in navigator)try{wakeLock=await navigator.wakeLock.request('screen');updateWakeLockIndicator(true)}catch(e){updateWakeLockIndicator(false)}else updateWakeLockIndicator(false)}async function releaseWakeLock(){if(wakeLock){try{await wakeLock.release();wakeLock=null;updateWakeLockIndicator(false)}catch(e){}}}function updateWakeLockIndicator(a){wakeLockIndicator.textContent=a?'🔒 Display bleibt an':'Wake Lock nicht verfügbar'}
+function loadSettings(){let s=localStorage.getItem(STORAGE_KEYS.sensitivity),t=localStorage.getItem(STORAGE_KEYS.threshold),c=localStorage.getItem(STORAGE_KEYS.cooldown);if(s!==null){sensitivitySlider.value=s;SENSITIVITY=parseInt(s);sensitivityValue.textContent=SENSITIVITY}if(t!==null){thresholdSlider.value=t;MOTION_THRESHOLD=parseFloat(t)/100;thresholdValue.textContent=t+'%'}if(c!==null){cooldownSlider.value=c;COOLDOWN_TIME=parseInt(c)*1000;cooldownValue.textContent=c+'s'}}function saveSettings(){localStorage.setItem(STORAGE_KEYS.sensitivity,sensitivitySlider.value);localStorage.setItem(STORAGE_KEYS.threshold,thresholdSlider.value);localStorage.setItem(STORAGE_KEYS.cooldown,cooldownSlider.value)}
+window.addEventListener('DOMContentLoaded',()=>{loadSettings();requestWakeLock()});sensitivitySlider.addEventListener('input',e=>{SENSITIVITY=+e.target.value;sensitivityValue.textContent=SENSITIVITY;saveSettings()});thresholdSlider.addEventListener('input',e=>{MOTION_THRESHOLD=+e.target.value/100;thresholdValue.textContent=e.target.value+'%';saveSettings()});cooldownSlider.addEventListener('input',e=>{COOLDOWN_TIME=+e.target.value*1000;cooldownValue.textContent=e.target.value+'s';saveSettings()});previewToggleBtn.addEventListener('click',()=>isPreviewActive?deactivatePreview():activatePreview());
+async function openCamera(mode){let facing=mode==='front'?'user':'environment',devices=[];try{devices=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput')}catch(e){}let candidates=devices.filter(d=>mode==='front'?isFrontCamera(d):!isFrontCamera(d)),match=mode==='rear-wide'?candidates.find(isWideCamera):mode==='rear-normal'?candidates.find(d=>!isWideCamera(d)):candidates[0];let vc={facingMode:facing,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:VIDEO_FPS}};if(match)delete vc.facingMode,vc.deviceId={exact:match.deviceId};stream=await navigator.mediaDevices.getUserMedia({video:vc,audio:true});video.srcObject=stream;cameraModeSelect.disabled=false;video.onloadedmetadata=()=>{canvas.width=160;canvas.height=120};if(mode==='rear-wide'&&!match)statusText.textContent='Rück-Weitwinkelkamera nicht gefunden – Rück-Normal-Kamera verwendet.'}
+async function activatePreview(){try{if(!stream)await openCamera(cameraMode);isPreviewActive=true;video.classList.remove('preview-hidden');previewToggleBtn.textContent='Live-Preview deaktivieren';previewToggleBtn.classList.add('btn-preview-active');if(cameraMode!=='rear-wide')statusText.textContent='Bereit. Bitte Erkennung starten.';statusText.className='status-box status-idle'}catch(e){alert('Fehler beim Zugriff auf Kamera/Mikrofon: '+e.message);statusText.textContent='Kamera konnte nicht gestartet werden.';statusText.className='status-box status-idle'}}function stopCameraStream(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null}function deactivatePreview(){if(isMotionDetectionActive)stopAll();isPreviewActive=false;video.classList.add('preview-hidden');previewToggleBtn.textContent='Live-Preview aktivieren';previewToggleBtn.classList.remove('btn-preview-active');statusText.textContent='Bereit. Bitte Erkennung starten.';statusText.className='status-box status-idle'}
+cameraModeSelect.addEventListener('change',async e=>{let old=cameraMode;cameraMode=e.target.value;cameraModeSelect.disabled=true;let detecting=isMotionDetectionActive;if(detecting)stopAll();stopCameraStream();try{await openCamera(cameraMode);isPreviewActive=true;video.classList.remove('preview-hidden');statusText.textContent='Bereit. Bitte Erkennung starten.';statusText.className='status-box status-idle'}catch(err){cameraMode=old;cameraModeSelect.value=old;try{await openCamera(old)}catch(e){}statusText.textContent='Kamera-Modus konnte nicht gewechselt werden.';statusText.className='status-box status-idle'}finally{cameraModeSelect.disabled=false}});
+startBtn.addEventListener('click',()=>{if(!stream)return alert('Kamera nicht verfügbar. Bitte Live-Preview aktivieren.');startBtn.style.display='none';stopBtn.style.display='block';isMotionDetectionActive=true;statusText.textContent='Warte auf Bewegung...';statusText.className='status-box status-idle';startMotionDetection()});stopBtn.addEventListener('click',stopAll);function stopAll(){if(isRecording)stopVideoRecording(false);isMotionDetectionActive=false;clearInterval(checkMotionInterval);startBtn.style.display='block';stopBtn.style.display='none';statusText.textContent='Bereit. Bitte Erkennung starten.';statusText.className='status-box status-idle';previousFrame=null}
+function startMotionDetection(){clearInterval(checkMotionInterval);checkMotionInterval=setInterval(()=>{if(!stream||!isMotionDetectionActive)return;ctx.drawImage(video,0,0,canvas.width,canvas.height);let current=ctx.getImageData(0,0,canvas.width,canvas.height);if(previousFrame){let changed=0,total=current.data.length/4;for(let i=0;i<current.data.length;i+=4)if(Math.abs(current.data[i]-previousFrame.data[i])+Math.abs(current.data[i+1]-previousFrame.data[i+1])+Math.abs(current.data[i+2]-previousFrame.data[i+2])>SENSITIVITY)changed++;let ratio=changed/total;motionValueText.textContent=`Bewegung: ${(ratio*100).toFixed(1)}%`;if(ratio>MOTION_THRESHOLD){lastMotionTime=Date.now();if(!isRecording)startVideoRecording()}else if(isRecording&&Date.now()-lastMotionTime>COOLDOWN_TIME)stopVideoRecording(true)}previousFrame=current},100)}
+function startVideoRecording(){isRecording=true;recordedChunks=[];statusText.textContent='● AUFNAHME LÄUFT...';statusText.className='status-box status-recording';let o={mimeType:'video/webm;codecs=vp9,opus',videoBitsPerSecond:12000000};if(!MediaRecorder.isTypeSupported(o.mimeType))o={mimeType:'video/webm;codecs=vp8,opus',videoBitsPerSecond:12000000};if(!MediaRecorder.isTypeSupported(o.mimeType))o={mimeType:'video/mp4',videoBitsPerSecond:12000000};try{mediaRecorder=new MediaRecorder(stream,o)}catch(e){mediaRecorder=new MediaRecorder(stream)}mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)recordedChunks.push(e.data)};mediaRecorder.onstop=()=>{if(recordedChunks.length)triggerAutoDownload()};mediaRecorder.start()}function stopVideoRecording(save){isRecording=false;statusText.textContent='Warte auf Bewegung...';statusText.className='status-box status-idle';if(mediaRecorder&&mediaRecorder.state!=='inactive'){if(!save)mediaRecorder.onstop=null;mediaRecorder.stop()}}function triggerAutoDownload(){let blob=new Blob(recordedChunks,{type:mediaRecorder.mimeType||'video/webm'}),url=URL.createObjectURL(blob),a=document.createElement('a');clipCounter++;clipCountText.textContent=`Gespeicherte Clips: ${clipCounter}`;a.style.display='none';a.href=url;a.download=`Skate_Clip_${new Date().toISOString().replace(/[:.]/g,'-')}.webm`;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},100)}window.addEventListener('beforeunload',()=>{releaseWakeLock();stopCameraStream()});
+</script></body></html>
