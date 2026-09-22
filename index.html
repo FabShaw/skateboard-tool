@@ -5,30 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skate Motion Capture</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #00ff88; font-size: 1.5rem; margin-bottom: 10px; }
         .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; }
         video { width: 100%; border-radius: 8px; background-color: #222; transform: scaleX(1); }
         .controls { display: flex; gap: 10px; }
-        button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+        button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
         .btn-start { background-color: #00ff88; color: #121212; }
         .btn-start:hover { background-color: #00cc6e; }
         .btn-stop { background-color: #ff3333; color: white; }
@@ -37,153 +19,56 @@
         .btn-preview:hover { background-color: #0066cc; }
         .btn-preview-active { background-color: #00ff88; color: #121212; }
         .btn-preview-active:hover { background-color: #00cc6e; }
-        .status-box {
-            padding: 15px;
-            border-radius: 6px;
-            background-color: #1e1e1e;
-            text-align: center;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border: 1px solid #333;
-        }
+        .camera-mode-control { display: flex; flex-direction: column; gap: 8px; }
+        .camera-mode-control label { color: #00ff88; font-size: 0.9rem; font-weight: bold; }
+        .status-box { padding: 15px; border-radius: 6px; background-color: #1e1e1e; text-align: center; font-size: 1.1rem; font-weight: bold; border: 1px solid #333; }
         .status-idle { color: #aaaaaa; }
         .status-recording { color: #ff3333; animation: blink 1s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
         .stats { font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; padding: 0 5px; }
-        .settings {
-            background-color: #1e1e1e;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #333;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .setting-row {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .setting-label {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-            color: #00ff88;
-            font-weight: bold;
-        }
-        .setting-value {
-            color: #888;
-            font-size: 0.85rem;
-        }
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #333;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #00ff88;
-            cursor: pointer;
-            box-shadow: 0 0 5px rgba(0, 255, 136, 0.5);
-        }
-        input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #00ff88;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 0 5px rgba(0, 255, 136, 0.5);
-        }
-        select {
-            width: 100%;
-            padding: 8px;
-            border-radius: 6px;
-            background-color: #2a2a2a;
-            color: #00ff88;
-            border: 1px solid #444;
-            font-weight: bold;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-        select option {
-            background-color: #1e1e1e;
-            color: #00ff88;
-        }
-        select:hover {
-            background-color: #333;
-        }
+        .settings { background-color: #1e1e1e; padding: 15px; border-radius: 6px; border: 1px solid #333; display: flex; flex-direction: column; gap: 12px; }
+        .setting-row { display: flex; flex-direction: column; gap: 8px; }
+        .setting-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #00ff88; font-weight: bold; }
+        .setting-value { color: #888; font-size: 0.85rem; }
+        input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: #333; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #00ff88; cursor: pointer; box-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
+        input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #00ff88; cursor: pointer; border: none; box-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
+        select { width: 100%; padding: 8px; border-radius: 6px; background-color: #2a2a2a; color: #00ff88; border: 1px solid #444; font-weight: bold; font-size: 0.9rem; cursor: pointer; }
+        select option { background-color: #1e1e1e; color: #00ff88; }
+        select:hover { background-color: #333; }
         canvas { display: none; }
         .preview-hidden { display: none; }
-        .wake-lock-indicator {
-            font-size: 0.75rem;
-            color: #00ff88;
-            margin-top: 8px;
-            text-align: center;
-        }
+        .wake-lock-indicator { font-size: 0.75rem; color: #00ff88; margin-top: 8px; text-align: center; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <h1>Skate Motion Capture</h1>
-    
     <button class="btn-preview" id="previewToggleBtn">Live-Preview aktivieren</button>
-    
     <video id="preview" autoplay playsinline muted class="preview-hidden"></video>
+
+    <div class="camera-mode-control">
+        <label for="cameraModeSelect">Kamera-Modus</label>
+        <select id="cameraModeSelect" disabled>
+            <option value="normal">Normal</option>
+            <option value="wide">Weitwinkel</option>
+        </select>
+    </div>
+
     <canvas id="motionCanvas"></canvas>
-    
     <div class="controls">
         <button class="btn-start" id="startBtn">Erkennung Starten</button>
         <button class="btn-stop" id="stopBtn" style="display:none;">Stoppen</button>
     </div>
-    
     <div class="status-box status-idle" id="statusText">Bereit. Bitte Erkennung starten.</div>
-    
-    <div class="stats">
-        <span id="clipCount">Gespeicherte Clips: 0</span>
-        <span id="motionValue">Bewegung: 0%</span>
-    </div>
-    
+    <div class="stats"><span id="clipCount">Gespeicherte Clips: 0</span><span id="motionValue">Bewegung: 0%</span></div>
     <div class="settings">
-        <div class="setting-row">
-            <div class="setting-label">
-                <span>Empfindlichkeit (Sensitivity)</span>
-                <span class="setting-value" id="sensitivityValue">50</span>
-            </div>
-            <input type="range" id="sensitivitySlider" min="0" max="255" value="50">
-        </div>
-        
-        <div class="setting-row">
-            <div class="setting-label">
-                <span>Bewegungsschwelle (Motion Threshold)</span>
-                <span class="setting-value" id="thresholdValue">1.5%</span>
-            </div>
-            <input type="range" id="thresholdSlider" min="0.5" max="10" step="0.5" value="1.5">
-        </div>
-        
-        <div class="setting-row">
-            <div class="setting-label">
-                <span>Nachlaufzeit (Cooldown)</span>
-                <span class="setting-value" id="cooldownValue">4s</span>
-            </div>
-            <input type="range" id="cooldownSlider" min="1" max="10" value="4">
-        </div>
-
-
+        <div class="setting-row"><div class="setting-label"><span>Empfindlichkeit (Sensitivity)</span><span class="setting-value" id="sensitivityValue">50</span></div><input type="range" id="sensitivitySlider" min="0" max="255" value="50"></div>
+        <div class="setting-row"><div class="setting-label"><span>Bewegungsschwelle (Motion Threshold)</span><span class="setting-value" id="thresholdValue">1.5%</span></div><input type="range" id="thresholdSlider" min="0.5" max="10" step="0.5" value="1.5"></div>
+        <div class="setting-row"><div class="setting-label"><span>Nachlaufzeit (Cooldown)</span><span class="setting-value" id="cooldownValue">4s</span></div><input type="range" id="cooldownSlider" min="1" max="10" value="4"></div>
     </div>
-    
     <div class="wake-lock-indicator" id="wakeLockIndicator"></div>
 </div>
-
 <script>
 const video = document.getElementById('preview');
 const canvas = document.getElementById('motionCanvas');
@@ -194,363 +79,71 @@ const statusText = document.getElementById('statusText');
 const clipCountText = document.getElementById('clipCount');
 const motionValueText = document.getElementById('motionValue');
 const previewToggleBtn = document.getElementById('previewToggleBtn');
+const cameraModeSelect = document.getElementById('cameraModeSelect');
 const wakeLockIndicator = document.getElementById('wakeLockIndicator');
-
-// Schieberegler und deren Wert-Anzeigen
 const sensitivitySlider = document.getElementById('sensitivitySlider');
 const thresholdSlider = document.getElementById('thresholdSlider');
 const cooldownSlider = document.getElementById('cooldownSlider');
 const sensitivityValue = document.getElementById('sensitivityValue');
 const thresholdValue = document.getElementById('thresholdValue');
 const cooldownValue = document.getElementById('cooldownValue');
+let SENSITIVITY = 50, MOTION_THRESHOLD = 0.015, COOLDOWN_TIME = 4000, VIDEO_FPS = 30;
+let stream = null, mediaRecorder = null, recordedChunks = [], previousFrame = null;
+let isRecording = false, isMotionDetectionActive = false, isPreviewActive = false;
+let lastMotionTime = 0, animationFrameId = null, checkMotionInterval = null, clipCounter = 0, wakeLock = null;
+let cameraMode = 'normal';
+const STORAGE_KEYS = { sensitivity: 'skateCapture_sensitivity', threshold: 'skateCapture_threshold', cooldown: 'skateCapture_cooldown' };
 
-// --- EINSTELLUNGEN (JETZT DYNAMISCH ÜBER SCHIEBEREGLER) ---
-let SENSITIVITY = 50;
-let MOTION_THRESHOLD = 0.015;
-let COOLDOWN_TIME = 4000;
-let VIDEO_FPS = 30;
-// -------------------------------------------------------
-
-let stream = null;
-let mediaRecorder = null;
-let recordedChunks = [];
-let previousFrame = null;
-let isRecording = false;
-let isMotionDetectionActive = false;
-let isPreviewActive = false;
-let lastMotionTime = 0;
-let animationFrameId = null;
-let checkMotionInterval = null;
-let clipCounter = 0;
-let wakeLock = null;
-
-// LocalStorage-Schlüssel
-const STORAGE_KEYS = {
-    sensitivity: 'skateCapture_sensitivity',
-    threshold: 'skateCapture_threshold',
-    cooldown: 'skateCapture_cooldown',
-};
-
-// Wake Lock Management
 async function requestWakeLock() {
-    if ('wakeLock' in navigator) {
-        try {
-            wakeLock = await navigator.wakeLock.request('screen');
-            updateWakeLockIndicator(true);
-            
-            // Wenn die Seite visible wird, Wake Lock erneuern
-            document.addEventListener('visibilitychange', async () => {
-                if (document.visibilityState === 'visible' && wakeLock === null) {
-                    await requestWakeLock();
-                }
-            });
-        } catch (err) {
-            console.warn('Wake Lock konnte nicht aktiviert werden:', err);
-            updateWakeLockIndicator(false);
-        }
-    } else {
-        updateWakeLockIndicator(false);
-    }
+    if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); updateWakeLockIndicator(true); document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && wakeLock === null) await requestWakeLock(); }); } catch (err) { console.warn('Wake Lock konnte nicht aktiviert werden:', err); updateWakeLockIndicator(false); } } else updateWakeLockIndicator(false);
 }
-
-async function releaseWakeLock() {
-    if (wakeLock) {
-        try {
-            await wakeLock.release();
-            wakeLock = null;
-            updateWakeLockIndicator(false);
-        } catch (err) {
-            console.warn('Fehler beim Freigeben des Wake Lock:', err);
-        }
-    }
-}
-
-function updateWakeLockIndicator(isActive) {
-    if (isActive) {
-        wakeLockIndicator.textContent = '🔒 Display bleibt an';
-    } else {
-        wakeLockIndicator.textContent = 'Wake Lock nicht verfügbar';
-    }
-}
-
-// Funktion zum Laden der gespeicherten Einstellungen
+async function releaseWakeLock() { if (wakeLock) { try { await wakeLock.release(); wakeLock = null; updateWakeLockIndicator(false); } catch (err) { console.warn('Fehler beim Freigeben des Wake Lock:', err); } } }
+function updateWakeLockIndicator(active) { wakeLockIndicator.textContent = active ? '🔒 Display bleibt an' : 'Wake Lock nicht verfügbar'; }
 function loadSettings() {
-    const savedSensitivity = localStorage.getItem(STORAGE_KEYS.sensitivity);
-    const savedThreshold = localStorage.getItem(STORAGE_KEYS.threshold);
-    const savedCooldown = localStorage.getItem(STORAGE_KEYS.cooldown);
-    
-    if (savedSensitivity !== null) {
-        sensitivitySlider.value = savedSensitivity;
-        SENSITIVITY = parseInt(savedSensitivity);
-        sensitivityValue.textContent = SENSITIVITY;
-    }
-    
-    if (savedThreshold !== null) {
-        thresholdSlider.value = savedThreshold;
-        MOTION_THRESHOLD = parseFloat(savedThreshold) / 100;
-        thresholdValue.textContent = savedThreshold + '%';
-    }
-    
-    if (savedCooldown !== null) {
-        cooldownSlider.value = savedCooldown;
-        COOLDOWN_TIME = parseInt(savedCooldown) * 1000;
-        cooldownValue.textContent = savedCooldown + 's';
-    }
-    
-    
+    const s = localStorage.getItem(STORAGE_KEYS.sensitivity), t = localStorage.getItem(STORAGE_KEYS.threshold), c = localStorage.getItem(STORAGE_KEYS.cooldown);
+    if (s !== null) { sensitivitySlider.value = s; SENSITIVITY = parseInt(s); sensitivityValue.textContent = SENSITIVITY; }
+    if (t !== null) { thresholdSlider.value = t; MOTION_THRESHOLD = parseFloat(t) / 100; thresholdValue.textContent = t + '%'; }
+    if (c !== null) { cooldownSlider.value = c; COOLDOWN_TIME = parseInt(c) * 1000; cooldownValue.textContent = c + 's'; }
 }
+function saveSettings() { localStorage.setItem(STORAGE_KEYS.sensitivity, sensitivitySlider.value); localStorage.setItem(STORAGE_KEYS.threshold, thresholdSlider.value); localStorage.setItem(STORAGE_KEYS.cooldown, cooldownSlider.value); }
+window.addEventListener('DOMContentLoaded', () => { loadSettings(); requestWakeLock(); });
+sensitivitySlider.addEventListener('input', e => { SENSITIVITY = parseInt(e.target.value); sensitivityValue.textContent = SENSITIVITY; saveSettings(); });
+thresholdSlider.addEventListener('input', e => { MOTION_THRESHOLD = parseFloat(e.target.value) / 100; thresholdValue.textContent = e.target.value + '%'; saveSettings(); });
+cooldownSlider.addEventListener('input', e => { COOLDOWN_TIME = parseInt(e.target.value) * 1000; cooldownValue.textContent = e.target.value + 's'; saveSettings(); });
+previewToggleBtn.addEventListener('click', () => isPreviewActive ? deactivatePreview() : activatePreview());
 
-// Funktion zum Speichern der Einstellungen
-function saveSettings() {
-    localStorage.setItem(STORAGE_KEYS.sensitivity, sensitivitySlider.value);
-    localStorage.setItem(STORAGE_KEYS.threshold, thresholdSlider.value);
-    localStorage.setItem(STORAGE_KEYS.cooldown, cooldownSlider.value);
-    
+function isWideCamera(device) { return /wide|ultra|0\.5x|0,5x|weitwinkel/i.test(device.label || ''); }
+async function openCamera(mode) {
+    const baseVideo = { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: VIDEO_FPS } };
+    let devices = [];
+    try { devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput'); } catch (err) { console.warn('Kameras konnten nicht aufgelistet werden:', err); }
+    const matchingDevice = mode === 'wide' ? devices.find(isWideCamera) : devices.find(d => !isWideCamera(d));
+    const constraints = { video: matchingDevice ? { ...baseVideo, deviceId: { exact: matchingDevice.deviceId } } : baseVideo, audio: true };
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    cameraModeSelect.disabled = false;
+    video.onloadedmetadata = () => { canvas.width = 160; canvas.height = 120; };
+    if (mode === 'wide' && !matchingDevice) statusText.textContent = 'Weitwinkelkamera nicht verfügbar – normale Kamera verwendet.';
 }
-
-// Einstellungen beim Laden der Seite zurückstellen
-window.addEventListener('DOMContentLoaded', () => {
-    loadSettings();
-    requestWakeLock();
-});
-
-// Event Listener für Schieberegler
-sensitivitySlider.addEventListener('input', (e) => {
-    SENSITIVITY = parseInt(e.target.value);
-    sensitivityValue.textContent = SENSITIVITY;
-    saveSettings();
-});
-
-thresholdSlider.addEventListener('input', (e) => {
-    MOTION_THRESHOLD = parseFloat(e.target.value) / 100;
-    thresholdValue.textContent = e.target.value + '%';
-    saveSettings();
-});
-
-cooldownSlider.addEventListener('input', (e) => {
-    COOLDOWN_TIME = parseInt(e.target.value) * 1000;
-    cooldownValue.textContent = e.target.value + 's';
-    saveSettings();
-});
-
-// Preview Toggle Button
-previewToggleBtn.addEventListener('click', () => {
-    if (isPreviewActive) {
-        deactivatePreview();
-    } else {
-        activatePreview();
-    }
-});
-
 async function activatePreview() {
-    try {
-        if (!stream) {
-            // Nutzt bevorzugt die Rückkamera (environment)
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { 
-                    facingMode: 'environment', 
-                    width: { ideal: 1280 }, 
-                    height: { ideal: 720 },
-                    frameRate: { ideal: VIDEO_FPS }
-                },
-                audio: true // Ton wird mitaufgenommen
-            });
-            
-            video.srcObject = stream;
-            
-            // Warte bis Video Metadaten geladen sind, um Canvas-Größe anzupassen
-            video.onloadedmetadata = () => {
-                canvas.width = 160; // Geringe Auflösung reicht völlig für die Bewegungserkennung (spart Akku)
-                canvas.height = 120;
-            };
-        }
-        
-        isPreviewActive = true;
-        video.classList.remove('preview-hidden');
-        previewToggleBtn.textContent = 'Live-Preview deaktivieren';
-        previewToggleBtn.classList.add('btn-preview-active');
-        statusText.textContent = "Bereit. Bitte Erkennung starten.";
-        statusText.className = "status-box status-idle";
-        
-    } catch (err) {
-        alert("Fehler beim Zugriff auf Kamera/Mikrofon: " + err.message);
-        statusText.textContent = "Kamera konnte nicht gestartet werden.";
-        statusText.className = "status-box status-idle";
-    }
+    try { if (!stream) await openCamera(cameraMode); isPreviewActive = true; video.classList.remove('preview-hidden'); previewToggleBtn.textContent = 'Live-Preview deaktivieren'; previewToggleBtn.classList.add('btn-preview-active'); if (!(cameraMode === 'wide' && !isWideCamera((await navigator.mediaDevices.enumerateDevices()).find(d => d.deviceId === stream.getVideoTracks()[0].getSettings().deviceId) || {}))) { statusText.textContent = 'Bereit. Bitte Erkennung starten.'; statusText.className = 'status-box status-idle'; } } catch (err) { alert('Fehler beim Zugriff auf Kamera/Mikrofon: ' + err.message); statusText.textContent = 'Kamera konnte nicht gestartet werden.'; statusText.className = 'status-box status-idle'; }
 }
+function stopCameraStream() { if (stream) stream.getTracks().forEach(track => track.stop()); stream = null; video.srcObject = null; }
+function deactivatePreview() { isPreviewActive = false; if (isMotionDetectionActive) stopAll(); video.classList.add('preview-hidden'); previewToggleBtn.textContent = 'Live-Preview aktivieren'; previewToggleBtn.classList.remove('btn-preview-active'); statusText.textContent = 'Bereit. Bitte Erkennung starten.'; statusText.className = 'status-box status-idle'; }
 
-function deactivatePreview() {
-    isPreviewActive = false;
-    video.classList.add('preview-hidden');
-    previewToggleBtn.textContent = 'Live-Preview aktivieren';
-    previewToggleBtn.classList.remove('btn-preview-active');
-    
-    // Stoppe Erkennung wenn aktiv
-    if (isMotionDetectionActive) {
-        stopAll();
-    }
-    
-    statusText.textContent = "Bereit. Bitte Erkennung starten.";
-    statusText.className = "status-box status-idle";
-}
-
-startBtn.addEventListener('click', () => {
-    if (!stream) {
-        alert("Kamera nicht verfügbar. Bitte Live-Preview aktivieren.");
-        return;
-    }
-    
-    // Starte Bewegungserkennung und Aufnahme
-    startBtn.style.display = 'none';
-    stopBtn.style.display = 'block';
-    isMotionDetectionActive = true;
-    statusText.textContent = "Warte auf Bewegung...";
-    statusText.className = "status-box status-idle";
-    startMotionDetection();
+cameraModeSelect.addEventListener('change', async e => {
+    const oldMode = cameraMode; cameraMode = e.target.value; cameraModeSelect.disabled = true;
+    const wasDetecting = isMotionDetectionActive; if (wasDetecting) stopAll(); stopCameraStream();
+    try { await openCamera(cameraMode); isPreviewActive = true; video.classList.remove('preview-hidden'); statusText.textContent = 'Bereit. Bitte Erkennung starten.'; statusText.className = 'status-box status-idle'; } catch (err) { cameraMode = oldMode; cameraModeSelect.value = oldMode; statusText.textContent = 'Kamera-Modus konnte nicht gewechselt werden.'; statusText.className = 'status-box status-idle'; try { await openCamera(oldMode); } catch (restoreErr) { console.warn('Kamera konnte nicht wiederhergestellt werden:', restoreErr); } } finally { cameraModeSelect.disabled = false; }
 });
-
-stopBtn.addEventListener('click', () => {
-    stopAll();
-});
-
-function stopAll() {
-    if (isRecording) {
-        stopVideoRecording(false); // Stoppe aktuelle Aufnahme ohne automatischen Download
-    }
-    isMotionDetectionActive = false;
-    cancelAnimationFrame(animationFrameId);
-    clearInterval(checkMotionInterval);
-    
-    startBtn.style.display = 'block';
-    stopBtn.style.display = 'none';
-    statusText.textContent = "Bereit. Bitte Erkennung starten.";
-    statusText.className = "status-box status-idle";
-    previousFrame = null;
-}
-
-function startMotionDetection() {
-    checkMotionInterval = setInterval(() => {
-        if (!stream || !isMotionDetectionActive) return;
-        
-        // Zeichne aktuelles Videobild verkleinert auf das Canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
-        if (previousFrame) {
-            let changedPixels = 0;
-            const totalPixels = currentFrame.data.length / 4;
-            
-            for (let i = 0; i < currentFrame.data.length; i += 4) {
-                let rDiff = Math.abs(currentFrame.data[i] - previousFrame.data[i]);
-                let gDiff = Math.abs(currentFrame.data[i+1] - previousFrame.data[i+1]);
-                let bDiff = Math.abs(currentFrame.data[i+2] - previousFrame.data[i+2]);
-                
-                if (rDiff + gDiff + bDiff > SENSITIVITY) {
-                    changedPixels++;
-                }
-            }
-            
-            const motionRatio = changedPixels / totalPixels;
-            motionValueText.textContent = `Bewegung: ${(motionRatio * 100).toFixed(1)}%`;
-            
-            if (motionRatio > MOTION_THRESHOLD) {
-                lastMotionTime = Date.now();
-                if (!isRecording) {
-                    startVideoRecording();
-                }
-            } else {
-                // Keine Bewegung. Prüfen, ob Nachlaufzeit abgelaufen ist
-                if (isRecording && (Date.now() - lastMotionTime > COOLDOWN_TIME)) {
-                    stopVideoRecording(true); // Stoppen und automatisch herunterladen
-                }
-            }
-        }
-        
-        previousFrame = currentFrame;
-    }, 100); // Prüft 10 Mal pro Sekunde auf Bewegung
-}
-
-function startVideoRecording() {
-    isRecording = true;
-    recordedChunks = [];
-    statusText.textContent = "● AUFNAHME LÄUFT...";
-    statusText.className = "status-box status-recording";
-    
-    // Finde unterstützten Codec (häufig mp4/webm auf Android)
-    let options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 12_000_000 };
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 12_000_000 };
-    }
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/mp4', videoBitsPerSecond: 12_000_000};
-    }
-    
-    try {
-        mediaRecorder = new MediaRecorder(stream, options);
-    } catch (e) {
-        mediaRecorder = new MediaRecorder(stream);
-    }
-    
-    mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-            recordedChunks.push(event.data);
-        }
-    };
-    
-    mediaRecorder.onstop = () => {
-        if (recordedChunks.length > 0) {
-            triggerAutoDownload();
-        }
-    };
-    
-    mediaRecorder.start();
-}
-
-function stopVideoRecording(shouldSave) {
-    isRecording = false;
-    statusText.textContent = "Warte auf Bewegung...";
-    statusText.className = "status-box status-idle";
-    
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        if (!shouldSave) {
-            // Falls manuell gestoppt wird, breche den automatischen Download ab
-            mediaRecorder.onstop = null; 
-        }
-        mediaRecorder.stop();
-    }
-}
-
-function triggerAutoDownload() {
-    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/webm' });
-    const url = URL.createObjectURL(blob);
-    
-    // Generiere einen eindeutigen Dateinamen mit Zeitstempel
-    const now = new Date();
-    const timeStr = now.toISOString().replace(/[:.]/g, '-');
-    clipCounter++;
-    clipCountText.textContent = `Gespeicherte Clips: ${clipCounter}`;
-    
-    // Erstelle ein unsichtbares Download-Element
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = `Skate_Clip_${timeStr}.webm`;
-    
-    document.body.appendChild(a);
-    a.click(); // Löst den automatischen Download aus
-    
-    // Aufräumen
-    setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, 100);
-}
-
-// Wake Lock freigeben, wenn die Seite verlassen wird
-window.addEventListener('beforeunload', () => {
-    releaseWakeLock();
-});
+startBtn.addEventListener('click', () => { if (!stream) { alert('Kamera nicht verfügbar. Bitte Live-Preview aktivieren.'); return; } startBtn.style.display = 'none'; stopBtn.style.display = 'block'; isMotionDetectionActive = true; statusText.textContent = 'Warte auf Bewegung...'; statusText.className = 'status-box status-idle'; startMotionDetection(); });
+stopBtn.addEventListener('click', stopAll);
+function stopAll() { if (isRecording) stopVideoRecording(false); isMotionDetectionActive = false; cancelAnimationFrame(animationFrameId); clearInterval(checkMotionInterval); startBtn.style.display = 'block'; stopBtn.style.display = 'none'; statusText.textContent = 'Bereit. Bitte Erkennung starten.'; statusText.className = 'status-box status-idle'; previousFrame = null; }
+function startMotionDetection() { checkMotionInterval = setInterval(() => { if (!stream || !isMotionDetectionActive) return; ctx.drawImage(video, 0, 0, canvas.width, canvas.height); const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height); if (previousFrame) { let changedPixels = 0; const totalPixels = currentFrame.data.length / 4; for (let i = 0; i < currentFrame.data.length; i += 4) { if (Math.abs(currentFrame.data[i] - previousFrame.data[i]) + Math.abs(currentFrame.data[i + 1] - previousFrame.data[i + 1]) + Math.abs(currentFrame.data[i + 2] - previousFrame.data[i + 2]) > SENSITIVITY) changedPixels++; } const motionRatio = changedPixels / totalPixels; motionValueText.textContent = `Bewegung: ${(motionRatio * 100).toFixed(1)}%`; if (motionRatio > MOTION_THRESHOLD) { lastMotionTime = Date.now(); if (!isRecording) startVideoRecording(); } else if (isRecording && Date.now() - lastMotionTime > COOLDOWN_TIME) stopVideoRecording(true); } previousFrame = currentFrame; }, 100); }
+function startVideoRecording() { isRecording = true; recordedChunks = []; statusText.textContent = '● AUFNAHME LÄUFT...'; statusText.className = 'status-box status-recording'; let options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 12000000 }; if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 12000000 }; if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/mp4', videoBitsPerSecond: 12000000 }; try { mediaRecorder = new MediaRecorder(stream, options); } catch (e) { mediaRecorder = new MediaRecorder(stream); } mediaRecorder.ondataavailable = event => { if (event.data && event.data.size > 0) recordedChunks.push(event.data); }; mediaRecorder.onstop = () => { if (recordedChunks.length > 0) triggerAutoDownload(); }; mediaRecorder.start(); }
+function stopVideoRecording(shouldSave) { isRecording = false; statusText.textContent = 'Warte auf Bewegung...'; statusText.className = 'status-box status-idle'; if (mediaRecorder && mediaRecorder.state !== 'inactive') { if (!shouldSave) mediaRecorder.onstop = null; mediaRecorder.stop(); } }
+function triggerAutoDownload() { const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/webm' }); const url = URL.createObjectURL(blob); const timeStr = new Date().toISOString().replace(/[:.]/g, '-'); clipCounter++; clipCountText.textContent = `Gespeicherte Clips: ${clipCounter}`; const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = `Skate_Clip_${timeStr}.webm`; document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100); }
+window.addEventListener('beforeunload', () => { releaseWakeLock(); stopCameraStream(); });
 </script>
-
 </body>
 </html>
