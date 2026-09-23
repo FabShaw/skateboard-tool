@@ -245,7 +245,8 @@
         checkMotionInterval = null,
         clipCounter = 0,
         wakeLock = null,
-        cameraMode = 'rear-normal';
+        cameraMode = 'rear-normal',
+        currentFacing = null;
       const STORAGE_KEYS = {
         sensitivity: 'skateCapture_sensitivity',
         threshold: 'skateCapture_threshold',
@@ -357,39 +358,75 @@
         } catch (e) {}
         logDetectedCameras(devices);
 
-        // WICHTIG: Für den Normal-Modus wird bewusst KEIN deviceId-Matching
-        // mehr verwendet. Auf vielen Android-Geräten sind die Kamera-Labels
-        // zu generisch (z.B. "camera2 0, facing back"), wodurch die
-        // Label-Erkennung für "nicht-wide" fälschlich die falsche Linse
-        // trifft. Ein generischer facingMode:'environment'-Request ohne
-        // deviceId liefert zuverlässig die Standard-Hauptkamera, da es dafür
-        // keine separate "wide"-Facing-Mode-Konstante gibt und Browser/OS
-        // bei so einer Anfrage die normale Rücklinse wählen.
-        // Nur für Weitwinkel ist explizites deviceId-Matching per Label
-        // nötig, da es dafür keinen Standard-Constraint gibt.
-        let match = null;
-        if (mode === 'rear-wide') {
-          let candidates = devices.filter((d) => !isFrontCamera(d));
-          match = candidates.find(isWideCamera);
+        // Viele Phones (u.a. dieses hier) melden dem Browser nur EINE
+        // logische Rückkamera und schalten intern zwischen Ultra-Weitwinkel/
+        // Normal/Tele anhand des Zoom-Faktors um. Ein deviceId-Wechsel bringt
+        // dann nichts, da es nur ein Gerät gibt. Deshalb wird nur bei einem
+        // Wechsel der Blickrichtung (Front <-> Rück) ein neuer Stream über
+        // getUserMedia geöffnet; Normal <-> Weitwinkel wird anschließend rein
+        // über track.applyConstraints({ zoom }) auf demselben Stream geregelt.
+        const needsNewStream = !stream || currentFacing !== facing;
+        if (needsNewStream) {
+          stopCameraStream();
+          let vc = {
+            facingMode: facing,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: VIDEO_FPS },
+          };
+          stream = await navigator.mediaDevices.getUserMedia({ video: vc, audio: true });
+          video.srcObject = stream;
+          currentFacing = facing;
+          video.onloadedmetadata = () => {
+            canvas.width = 160;
+            canvas.height = 120;
+          };
         }
-
-        let vc = {
-          facingMode: facing,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: VIDEO_FPS },
-        };
-        if (match) (delete vc.facingMode, (vc.deviceId = { exact: match.deviceId }));
-        stream = await navigator.mediaDevices.getUserMedia({ video: vc, audio: true });
-        video.srcObject = stream;
         cameraModeSelect.disabled = false;
-        video.onloadedmetadata = () => {
-          canvas.width = 160;
-          canvas.height = 120;
-        };
-        if (mode === 'rear-wide' && !match)
-          statusText.textContent =
-            'Rück-Weitwinkelkamera nicht gefunden – Standard-Rückkamera verwendet.';
+
+        if (mode !== 'front') await applyZoomForMode(mode);
+      }
+
+      // Schaltet auf dem bestehenden Rückkamera-Track per Zoom-Constraint
+      // zwischen Normal- und Weitwinkel-Ansicht um (statt deviceId, siehe
+      // openCamera). Wenn der Browser/das Gerät keine Zoom-Capability
+      // meldet, ist ein Linsenwechsel über die Web-API leider nicht möglich
+      // und es bleibt bei der vom OS gewählten Standardlinse.
+      async function applyZoomForMode(mode) {
+        const track = stream && stream.getVideoTracks()[0];
+        if (!track || typeof track.getCapabilities !== 'function') return;
+        let caps = {};
+        try {
+          caps = track.getCapabilities();
+        } catch (e) {}
+        logZoomCapabilities(caps.zoom);
+        if (!caps.zoom) {
+          if (mode === 'rear-wide')
+            statusText.textContent =
+              'Dieses Gerät erlaubt keinen Linsenwechsel über den Browser (kein Zoom-Support gemeldet).';
+          return;
+        }
+        const { min, max } = caps.zoom;
+        const target = mode === 'rear-wide' ? min : Math.min(max, Math.max(min, 1));
+        try {
+          await track.applyConstraints({ advanced: [{ zoom: target }] });
+          logZoomCapabilities(caps.zoom, target);
+        } catch (e) {
+          statusText.textContent = 'Zoom-Wechsel fehlgeschlagen: ' + e.message;
+        }
+      }
+
+      function logZoomCapabilities(zoomCaps, current) {
+        const panel = document.getElementById('debugPanel');
+        if (!panel) return;
+        const existing = panel.dataset.deviceLines || panel.innerHTML;
+        panel.dataset.deviceLines = existing;
+        const zoomLine = zoomCaps
+          ? `Zoom-Bereich: ${zoomCaps.min} – ${zoomCaps.max}${
+              current !== undefined ? ` (aktuell: ${current})` : ''
+            }`
+          : 'Keine Zoom-Capability gemeldet – Linsenwechsel über Browser nicht möglich.';
+        panel.innerHTML = existing + '<br>' + zoomLine;
       }
 
       // Debug-Hilfsfunktion: zeigt die erkannten Kamera-Labels im
@@ -431,6 +468,7 @@
         if (stream) stream.getTracks().forEach((t) => t.stop());
         stream = null;
         video.srcObject = null;
+        currentFacing = null;
       }
       function deactivatePreview() {
         if (isMotionDetectionActive) stopAll();
@@ -447,9 +485,9 @@
         cameraModeSelect.disabled = true;
         let detecting = isMotionDetectionActive;
         if (detecting) stopAll();
-        stopCameraStream();
         try {
           await openCamera(cameraMode);
+          previousFrame = null;
           isPreviewActive = true;
           video.classList.remove('preview-hidden');
           statusText.textContent = 'Bereit. Bitte Erkennung starten.';
