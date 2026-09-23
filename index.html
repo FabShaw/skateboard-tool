@@ -203,6 +203,14 @@
         </div>
       </div>
       <div class="wake-lock-indicator" id="wakeLockIndicator"></div>
+      <details class="settings">
+        <summary style="color: #00ff88; font-weight: bold; cursor: pointer;">
+          Debug: Erkannte Kameras
+        </summary>
+        <div id="debugPanel" style="font-size: 0.8rem; color: #aaa; margin-top: 8px;">
+          Noch keine Kamera-Berechtigung erteilt.
+        </div>
+      </details>
     </div>
     <script>
       const video = document.getElementById('preview'),
@@ -347,15 +355,24 @@
         try {
           devices = await ensureDeviceLabels();
         } catch (e) {}
-        let candidates = devices.filter((d) =>
-            mode === 'front' ? isFrontCamera(d) : !isFrontCamera(d),
-          ),
-          match =
-            mode === 'rear-wide'
-              ? candidates.find(isWideCamera)
-              : mode === 'rear-normal'
-                ? candidates.find((d) => !isWideCamera(d))
-                : candidates[0];
+        logDetectedCameras(devices);
+
+        // WICHTIG: Für den Normal-Modus wird bewusst KEIN deviceId-Matching
+        // mehr verwendet. Auf vielen Android-Geräten sind die Kamera-Labels
+        // zu generisch (z.B. "camera2 0, facing back"), wodurch die
+        // Label-Erkennung für "nicht-wide" fälschlich die falsche Linse
+        // trifft. Ein generischer facingMode:'environment'-Request ohne
+        // deviceId liefert zuverlässig die Standard-Hauptkamera, da es dafür
+        // keine separate "wide"-Facing-Mode-Konstante gibt und Browser/OS
+        // bei so einer Anfrage die normale Rücklinse wählen.
+        // Nur für Weitwinkel ist explizites deviceId-Matching per Label
+        // nötig, da es dafür keinen Standard-Constraint gibt.
+        let match = null;
+        if (mode === 'rear-wide') {
+          let candidates = devices.filter((d) => !isFrontCamera(d));
+          match = candidates.find(isWideCamera);
+        }
+
         let vc = {
           facingMode: facing,
           width: { ideal: 1280 },
@@ -372,7 +389,27 @@
         };
         if (mode === 'rear-wide' && !match)
           statusText.textContent =
-            'Rück-Weitwinkelkamera nicht gefunden – Rück-Normal-Kamera verwendet.';
+            'Rück-Weitwinkelkamera nicht gefunden – Standard-Rückkamera verwendet.';
+      }
+
+      // Debug-Hilfsfunktion: zeigt die erkannten Kamera-Labels im
+      // Debug-Panel an, damit man bei Problemen die tatsächlichen
+      // Gerätebezeichnungen des Handys sehen kann.
+      function logDetectedCameras(devices) {
+        const panel = document.getElementById('debugPanel');
+        if (!panel) return;
+        if (!devices || !devices.length) {
+          panel.textContent = 'Keine Video-Geräte erkannt.';
+          return;
+        }
+        panel.innerHTML = devices
+          .map((d, i) => {
+            const label = d.label || '(kein Label – Berechtigung fehlt?)';
+            const wide = isWideCamera(d) ? ' [wide erkannt]' : '';
+            const front = isFrontCamera(d) ? ' [front erkannt]' : '';
+            return `${i}: ${label}${wide}${front}`;
+          })
+          .join('<br>');
       }
       async function activatePreview() {
         try {
